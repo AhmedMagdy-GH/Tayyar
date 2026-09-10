@@ -14,7 +14,10 @@ Restaurants provides customer applications, admin reviews, immutable resubmissio
 history, owner memberships, scoped profile management, and audited status changes.
 Branches provides structured locations, delivery models, weekly/special hours,
 operational status and existing-member staff assignments with owner/admin controls.
-Menu, Delivery Zones, ordering and frontend remain unimplemented.
+Menu provides one primary restaurant menu, ordered categories/items, EGP base prices,
+branch overrides, effective item projections and owner/admin controls.
+Delivery Zones, Cart, ordering and frontend remain unimplemented.
+See [Menu API and checkpoint](docs/menu.md).
 See [Branches API and checkpoint](docs/branches.md).
 See [Restaurants API and checkpoint](docs/restaurants.md).
 See [Identity API and verification](docs/identity.md) and the earlier
@@ -78,7 +81,8 @@ Do not automatically baseline a nonempty database. Identity supplies
 `V1__create_users_and_roles.sql` and `V2__create_sessions_and_auth_rate_limits.sql`.
 Restaurants adds `V3__create_restaurant_applications_and_memberships.sql`.
 Branches adds `V4__create_branches.sql`.
-All four must be applied before normal startup. The migration account needs
+Menu adds `V5__create_restaurant_menus.sql`.
+All five must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 

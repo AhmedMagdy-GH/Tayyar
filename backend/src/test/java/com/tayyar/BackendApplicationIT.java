@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-@EntityScan(basePackageClasses = {MigrationProbe.class, com.tayyar.user.User.class, com.tayyar.restaurant.Restaurant.class, com.tayyar.branch.Branch.class})
+@EntityScan(basePackageClasses = {MigrationProbe.class, com.tayyar.user.User.class, com.tayyar.restaurant.Restaurant.class, com.tayyar.branch.Branch.class, com.tayyar.menu.Menu.class})
 class BackendApplicationIT extends PostgresIntegrationTest {
     @Autowired DataSource dataSource;
     @Autowired JdbcTemplate jdbc;
@@ -42,7 +42,7 @@ class BackendApplicationIT extends PostgresIntegrationTest {
     @Test
     void migrationsValidateAndAreNotAppliedTwice() {
         flyway.validate();
-        assertThat(flyway.info().applied()).hasSize(5);
+        assertThat(flyway.info().applied()).hasSize(6);
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThatThrownBy(flyway::clean).hasMessageContaining("cleanDisabled");
     }
