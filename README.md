@@ -12,7 +12,10 @@ connectivity, Foundation, and Identity are implemented. Identity provides custom
 registration, login/logout, JDBC sessions, CSRF, and the current-user endpoint.
 Restaurants provides customer applications, admin reviews, immutable resubmission
 history, owner memberships, scoped profile management, and audited status changes.
-Branches, Menu, ordering and frontend remain unimplemented.
+Branches provides structured locations, delivery models, weekly/special hours,
+operational status and existing-member staff assignments with owner/admin controls.
+Menu, Delivery Zones, ordering and frontend remain unimplemented.
+See [Branches API and checkpoint](docs/branches.md).
 See [Restaurants API and checkpoint](docs/restaurants.md).
 See [Identity API and verification](docs/identity.md) and the earlier
 [Foundation checkpoint](docs/foundation.md).
@@ -74,7 +77,8 @@ Before the first migration, inspect the target schema and role grants using
 Do not automatically baseline a nonempty database. Identity supplies
 `V1__create_users_and_roles.sql` and `V2__create_sessions_and_auth_rate_limits.sql`.
 Restaurants adds `V3__create_restaurant_applications_and_memberships.sql`.
-All three must be applied before normal startup. The migration account needs
+Branches adds `V4__create_branches.sql`.
+All four must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 
