@@ -60,6 +60,9 @@ public class CustomerAddress {
 
     @jakarta.persistence.Version private long version;
 
+    @Column(name = "delivery_zone_id")
+    private UUID deliveryZoneId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -116,6 +119,10 @@ public class CustomerAddress {
         return id;
     }
 
+    public void selectZone(UUID zone) {
+        deliveryZoneId = zone;
+    }
+
     public View view() {
         return new View(
                 id,
@@ -133,6 +140,7 @@ public class CustomerAddress {
                         countryCode,
                         latitude,
                         longitude),
+                deliveryZoneId,
                 isDefault,
                 version,
                 createdAt,

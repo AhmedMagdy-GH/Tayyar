@@ -20,11 +20,17 @@ public class AddressService {
     private final AddressRepository addresses;
     private final AddressJournal journal;
     private final Clock clock;
+    private final com.tayyar.delivery.ServiceabilityQuery serviceability;
 
-    public AddressService(AddressRepository addresses, AddressJournal journal, Clock clock) {
+    public AddressService(
+            AddressRepository addresses,
+            AddressJournal journal,
+            Clock clock,
+            com.tayyar.delivery.ServiceabilityQuery serviceability) {
         this.addresses = addresses;
         this.journal = journal;
         this.clock = clock;
+        this.serviceability = serviceability;
     }
 
     public Page list(SessionPrincipal actor, Window window) {
@@ -89,5 +95,17 @@ public class AddressService {
 
     private CustomerAddress owned(SessionPrincipal actor, UUID id) {
         return addresses.findByIdAndUserId(id, actor.id()).orElseThrow(AddressException::missing);
+    }
+
+    @Transactional
+    public View selectZone(SessionPrincipal actor, UUID id, ZoneSelection input) {
+        journal.lockUser(actor.id());
+        var address = owned(actor, id);
+        address.touch(input.version(), clock.instant());
+        if (input.deliveryZoneId() != null)
+            serviceability.requireActiveZone(input.deliveryZoneId());
+        address.selectZone(input.deliveryZoneId());
+        addresses.flush();
+        return address.view();
     }
 }

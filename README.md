@@ -18,7 +18,10 @@ Menu provides one primary restaurant menu, ordered categories/items, EGP base pr
 branch overrides, effective item projections and owner/admin controls.
 Customer Addresses provides private saved addresses, structured locations and atomic
 default selection with ownership and version checks.
-Delivery Zones, Cart, ordering and frontend remain unimplemented.
+Delivery Zones provides managed cities/areas, versioned branch delivery rules,
+private address-zone selection and server-side serviceability evaluation.
+Discovery, Cart, ordering and frontend remain unimplemented.
+See [Delivery Zones API and checkpoint](docs/delivery-zones.md).
 See [Customer Addresses API and checkpoint](docs/addresses.md).
 See [Menu API and checkpoint](docs/menu.md).
 See [Branches API and checkpoint](docs/branches.md).
@@ -86,7 +89,8 @@ Restaurants adds `V3__create_restaurant_applications_and_memberships.sql`.
 Branches adds `V4__create_branches.sql`.
 Menu adds `V5__create_restaurant_menus.sql`.
 Customer Addresses adds `V6__create_customer_addresses.sql`.
-All six must be applied before normal startup. The migration account needs
+Delivery Zones adds `V7__create_delivery_zones.sql`.
+All seven must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 

@@ -31,9 +31,13 @@ public final class AddressDtos {
 
     public record VersionInput(@NotNull @PositiveOrZero Long version) {}
 
+    // Null explicitly clears the managed zone; existing profile PUT remains compatible.
+    public record ZoneSelection(UUID deliveryZoneId, @NotNull @PositiveOrZero Long version) {}
+
     public record View(
             UUID id,
             Profile profile,
+            UUID deliveryZoneId,
             boolean isDefault,
             long version,
             Instant createdAt,

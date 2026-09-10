@@ -67,4 +67,12 @@ public class AddressController {
             @Valid @RequestBody VersionInput input) {
         return service.selectDefault(actor, id, input);
     }
+
+    @PutMapping("/{id}/delivery-zone")
+    public View selectZone(
+            @AuthenticationPrincipal SessionPrincipal actor,
+            @PathVariable UUID id,
+            @Valid @RequestBody ZoneSelection input) {
+        return service.selectZone(actor, id, input);
+    }
 }
