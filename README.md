@@ -10,7 +10,10 @@ Implemented API: `GET /api/v1/health` returns HTTP 200 with `{"status":"UP","ser
 It identifies the service; it does not establish database readiness. PostgreSQL
 connectivity, Foundation, and Identity are implemented. Identity provides customer
 registration, login/logout, JDBC sessions, CSRF, and the current-user endpoint.
-Restaurant and ordering features are not implemented.
+Restaurants provides customer applications, admin reviews, immutable resubmission
+history, owner memberships, scoped profile management, and audited status changes.
+Branches, Menu, ordering and frontend remain unimplemented.
+See [Restaurants API and checkpoint](docs/restaurants.md).
 See [Identity API and verification](docs/identity.md) and the earlier
 [Foundation checkpoint](docs/foundation.md).
 
@@ -70,7 +73,8 @@ Before the first migration, inspect the target schema and role grants using
 [the read-only audit](docs/database-inspection.sql) and review the findings.
 Do not automatically baseline a nonempty database. Identity supplies
 `V1__create_users_and_roles.sql` and `V2__create_sessions_and_auth_rate_limits.sql`.
-Both must be applied before normal Identity startup. The migration account needs
+Restaurants adds `V3__create_restaurant_applications_and_memberships.sql`.
+All three must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 
