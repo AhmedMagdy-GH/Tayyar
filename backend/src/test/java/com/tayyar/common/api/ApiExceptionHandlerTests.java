@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ApiExceptionHandlerTests.ProbeController.class)
 @Import({ApiExceptionHandlerTests.ProbeController.class, ApiExceptionHandler.class,
-        ApiErrorController.class, RequestCorrelationFilter.class})
+        ApiErrorController.class, RequestCorrelationFilter.class, com.tayyar.support.WebSliceSecurity.class})
 class ApiExceptionHandlerTests {
     @Autowired MockMvc mvc;
 

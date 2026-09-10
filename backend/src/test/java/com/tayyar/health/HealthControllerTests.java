@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(HealthController.class)
+@org.springframework.context.annotation.Import(com.tayyar.support.WebSliceSecurity.class)
 class HealthControllerTests {
 
     @Autowired

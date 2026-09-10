@@ -8,8 +8,11 @@ Tayyar is a food-delivery marketplace being developed as a modular monolith.
 
 Implemented API: `GET /api/v1/health` returns HTTP 200 with `{"status":"UP","service":"tayyar-backend"}`.
 It identifies the service; it does not establish database readiness. PostgreSQL
-connectivity and Foundation code exist; authentication and business features do not.
-See [Foundation verification status](docs/foundation.md).
+connectivity, Foundation, and Identity are implemented. Identity provides customer
+registration, login/logout, JDBC sessions, CSRF, and the current-user endpoint.
+Restaurant and ordering features are not implemented.
+See [Identity API and verification](docs/identity.md) and the earlier
+[Foundation checkpoint](docs/foundation.md).
 
 ## Tests
 
@@ -44,6 +47,9 @@ cd backend
 On macOS/Linux, use `./mvnw` instead of `.\mvnw.cmd`.
 
 The health endpoint is available at `http://localhost:8080/api/v1/health`.
+Browser authentication requires HTTPS because the session cookie is Secure by
+default. Use same-origin HTTPS for frontend/API integration. Tests exercise HTTP
+with an explicit cookie harness; they do not require weakening the secure default.
 
 For an explicit read-only connectivity smoke test against your configured local database:
 
@@ -62,8 +68,11 @@ the application runtime user does not need DDL privileges.
 
 Before the first migration, inspect the target schema and role grants using
 [the read-only audit](docs/database-inspection.sql) and review the findings.
-Do not automatically baseline a nonempty database. Foundation has no production
-business migration; `V1__create_users_and_roles.sql` belongs to Identity.
+Do not automatically baseline a nonempty database. Identity supplies
+`V1__create_users_and_roles.sql` and `V2__create_sessions_and_auth_rate_limits.sql`.
+Both must be applied before normal Identity startup. The migration account needs
+schema DDL privileges; the runtime account needs only reviewed application-table
+privileges, including the updates used by authentication-version triggers.
 
 After inspection and when reviewed migrations exist, provide separate
 `DB_MIGRATION_USERNAME` / `DB_MIGRATION_PASSWORD` and run:
@@ -81,5 +90,6 @@ Do not enable `DB_MIGRATIONS_ENABLED=true` with a production runtime account;
 that switch uses the runtime datasource unless separate Flyway credentials are set.
 Never use Hibernate `create`/`update`, Flyway `clean`, or automatic baselining as a shortcut.
 
-See [Foundation notes](docs/foundation.md) for error conventions, tests, limitations,
-and the complete file manifest. No CI/CD or deployment configuration has been added.
+See [Identity notes](docs/identity.md) for API usage, security decisions, results,
+remaining prerequisites, and the changed-file manifest. No CI/CD or deployment
+configuration has been added.

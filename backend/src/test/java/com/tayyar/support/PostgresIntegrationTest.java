@@ -4,12 +4,14 @@ import java.util.UUID;
 
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.images.builder.Transferable;
 
 @Testcontainers
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public abstract class PostgresIntegrationTest {
     private static final String APP_PASSWORD = UUID.randomUUID().toString();
 
@@ -35,6 +37,6 @@ public abstract class PostgresIntegrationTest {
         properties.add("spring.flyway.url", POSTGRES::getJdbcUrl);
         properties.add("spring.flyway.user", POSTGRES::getUsername);
         properties.add("spring.flyway.password", POSTGRES::getPassword);
-        properties.add("spring.flyway.locations", () -> "classpath:db/foundation-test");
+        properties.add("spring.flyway.locations", () -> "classpath:db/migration,classpath:db/foundation-test");
     }
 }
