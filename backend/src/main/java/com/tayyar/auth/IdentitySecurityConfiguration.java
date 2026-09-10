@@ -87,6 +87,8 @@ public class IdentitySecurityConfiguration {
                                                 "/api/v1/auth/registrations",
                                                 "/api/v1/auth/session")
                                         .permitAll()
+                                        .requestMatchers("/api/v1/users/me/addresses/**")
+                                        .hasRole("CUSTOMER")
                                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me")
                                         .authenticated()
                                         .requestMatchers("/api/v1/admin/restaurant-applications/**", "/api/v1/admin/restaurants/**")

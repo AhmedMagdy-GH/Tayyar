@@ -16,7 +16,10 @@ Branches provides structured locations, delivery models, weekly/special hours,
 operational status and existing-member staff assignments with owner/admin controls.
 Menu provides one primary restaurant menu, ordered categories/items, EGP base prices,
 branch overrides, effective item projections and owner/admin controls.
+Customer Addresses provides private saved addresses, structured locations and atomic
+default selection with ownership and version checks.
 Delivery Zones, Cart, ordering and frontend remain unimplemented.
+See [Customer Addresses API and checkpoint](docs/addresses.md).
 See [Menu API and checkpoint](docs/menu.md).
 See [Branches API and checkpoint](docs/branches.md).
 See [Restaurants API and checkpoint](docs/restaurants.md).
@@ -82,7 +85,8 @@ Do not automatically baseline a nonempty database. Identity supplies
 Restaurants adds `V3__create_restaurant_applications_and_memberships.sql`.
 Branches adds `V4__create_branches.sql`.
 Menu adds `V5__create_restaurant_menus.sql`.
-All five must be applied before normal startup. The migration account needs
+Customer Addresses adds `V6__create_customer_addresses.sql`.
+All six must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 
