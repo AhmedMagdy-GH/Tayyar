@@ -96,6 +96,10 @@ public class IdentitySecurityConfiguration {
                                         .hasRole("CUSTOMER")
                                         .requestMatchers("/api/v1/orders/**")
                                         .hasRole("CUSTOMER")
+                                        .requestMatchers("/api/v1/favorites/**")
+                                        .hasRole("CUSTOMER")
+                                        .requestMatchers("/api/v1/admin/reviews/**")
+                                        .hasRole("ADMIN")
                                         .requestMatchers("/api/v1/restaurant-orders/**")
                                         .hasAnyRole("RESTAURANT_OWNER", "RESTAURANT_STAFF")
                                         .requestMatchers(
