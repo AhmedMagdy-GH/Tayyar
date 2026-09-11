@@ -15,7 +15,8 @@ public final class CheckoutDtos {
             @NotNull UUID cartId,
             @NotNull @PositiveOrZero Long cartVersion,
             @NotNull UUID savedAddressId,
-            @NotNull PaymentMethod paymentMethod) {}
+            @NotNull PaymentMethod paymentMethod,
+            @Size(max = 64) String promotionCode) {}
 
     public record Summary(
             UUID orderId,

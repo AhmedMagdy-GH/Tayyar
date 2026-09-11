@@ -59,8 +59,8 @@ public class OrderService {
         }
         BigDecimal delivery = MoneyRules.amount(draft.deliveryFee(), "Delivery fee");
         BigDecimal discount = MoneyRules.amount(draft.discountTotal(), "Discount total");
-        if (discount.compareTo(merchandise.add(delivery)) > 0)
-            throw OrderException.invalid("Discount cannot exceed merchandise plus delivery");
+        if (discount.compareTo(merchandise) > 0)
+            throw OrderException.invalid("Discount cannot exceed merchandise subtotal");
         BigDecimal total =
                 MoneyRules.amount(merchandise.add(delivery).subtract(discount), "Final total");
         Money money = new Money(MoneyRules.CURRENCY, merchandise, delivery, discount, total);

@@ -4,6 +4,7 @@ import com.tayyar.auth.SessionPrincipal;
 import com.tayyar.cart.*;
 import com.tayyar.order.*;
 import com.tayyar.payment.*;
+import com.tayyar.promotion.*;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.Instant;
 
 @Service
 @PreAuthorize("hasRole('CUSTOMER')")
@@ -22,6 +24,7 @@ public class CheckoutService {
     private final CheckoutStore store;
     private final OrderService orders;
     private final PaymentService payments;
+    private final PromotionEvaluator promotions;
     private final Clock clock;
 
     public CheckoutService(
@@ -31,6 +34,7 @@ public class CheckoutService {
             CheckoutStore store,
             OrderService orders,
             PaymentService payments,
+            PromotionEvaluator promotions,
             Clock clock) {
         this.carts = carts;
         this.query = query;
@@ -38,6 +42,7 @@ public class CheckoutService {
         this.store = store;
         this.orders = orders;
         this.payments = payments;
+        this.promotions = promotions;
         this.clock = clock;
     }
 
@@ -64,6 +69,8 @@ public class CheckoutService {
                     HttpStatus.BAD_REQUEST,
                     "INVALID_REQUEST",
                     "Checkout selections and current cart version are required");
+        String promotionCode = input.promotionCode() == null
+                ? null : PromotionRules.code(input.promotionCode());
         carts.lockCustomer(actor.id());
         store.requireActiveCustomer(actor.id());
         var previous = store.receipt(actor.id(), key);
@@ -72,7 +79,8 @@ public class CheckoutService {
             if (!receipt.cart().equals(input.cartId())
                     || receipt.version() != input.cartVersion()
                     || !receipt.address().equals(input.savedAddressId())
-                    || !receipt.method().equals(input.paymentMethod().name()))
+                    || !receipt.method().equals(input.paymentMethod().name())
+                    || !java.util.Objects.equals(receipt.promotionCode(), promotionCode))
                 throw CheckoutException.conflict(
                         "IDEMPOTENCY_MISMATCH",
                         "Idempotency key was already used for different checkout selections");
@@ -119,6 +127,12 @@ public class CheckoutService {
             throw CheckoutException.conflict(
                     "MINIMUM_ORDER_NOT_MET",
                     "Merchandise subtotal is below the delivery minimum; add items");
+        Instant checkoutTime = clock.instant();
+        PromotionEvaluator.Applied applied = promotionCode == null
+                ? null
+                : promotions.evaluate(cart.restaurant(), actor.id(), promotionCode, subtotal, checkoutTime);
+        BigDecimal discount = applied == null
+                ? BigDecimal.ZERO.setScale(2) : applied.discount();
         var actorIdentity = TransitionActor.user(actor);
         var order =
                 orders.create(
@@ -138,15 +152,17 @@ public class CheckoutService {
                                                 .toList(),
                                         delivery.address(),
                                         delivery.fee(),
-                                        BigDecimal.ZERO.setScale(2)),
+                                        discount),
                                 actorIdentity)
                         .order();
+        if (applied != null) promotions.redeem(applied, actor.id(), order.id(), checkoutTime);
         var payment =
                 payments.create(
                         new PaymentDtos.Create(order.id(), PaymentMethod.CASH, null, null),
                         actorIdentity);
-        store.consume(cart, clock.instant());
-        store.complete(actor.id(), key, input, order.id(), payment.id(), order.createdAt());
+        store.consume(cart, checkoutTime);
+        store.complete(actor.id(), key, input, order.id(), payment.id(), promotionCode,
+                order.createdAt());
         var money = order.money();
         return new CheckoutDtos.Summary(
                 order.id(),

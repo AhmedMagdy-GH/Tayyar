@@ -347,6 +347,20 @@ VALUES (?,?,?,'Street','Cairo','EG','Africa/Cairo','RESTAURANT_DELIVERY','ACTIVE
         return body(browser.send("POST", "/checkout", request()), status);
     }
 
+    UUID promotion(String code, String type, String percentage, String fixed,
+            String minimum, String maximum, Long totalLimit, Long customerLimit) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+INSERT INTO promotions(id,restaurant_id,code,name,discount_type,percentage_value,fixed_amount,
+ minimum_merchandise_subtotal,maximum_discount,active,total_usage_limit,per_customer_usage_limit,
+ created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,true,?,?,now(),now())
+""", id, restaurant, code, "Checkout promotion", type,
+                percentage == null ? null : new BigDecimal(percentage),
+                fixed == null ? null : new BigDecimal(fixed), new BigDecimal(minimum),
+                maximum == null ? null : new BigDecimal(maximum), totalLimit, customerLimit);
+        return id;
+    }
+
     void intact() {
         assertThat(
                         jdbc.queryForObject(
@@ -449,6 +463,81 @@ VALUES (?,?,?,'Street','Cairo','EG','Africa/Cairo','RESTAURANT_DELIVERY','ACTIVE
         assertThatThrownBy(
                         () -> jdbc.update("UPDATE carts SET status='ACTIVE' WHERE id=?", cartId()))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void promotedCheckoutDiscountsMerchandiseOnlyAndIsIdempotent() throws Exception {
+        ready();
+        UUID promotion = promotion("SAVE50", "FIXED_AMOUNT", null, "50", "60", null, 1L, 1L);
+        var input = request(); input.put("promotionCode", "  save50  ");
+        var result = body(browser.send("POST", "/checkout", input), 201);
+        UUID order = UUID.fromString(result.get("orderId").asText());
+        assertThat(result.get("merchandiseSubtotal").decimalValue()).isEqualByComparingTo("80");
+        assertThat(result.get("deliveryFee").decimalValue()).isEqualByComparingTo("20");
+        assertThat(result.get("discountTotal").decimalValue()).isEqualByComparingTo("50");
+        assertThat(result.get("finalTotal").decimalValue()).isEqualByComparingTo("50");
+        assertThat(jdbc.queryForObject("SELECT amount FROM payments WHERE order_id=?",
+                BigDecimal.class, order)).isEqualByComparingTo("50");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM promotion_redemptions WHERE promotion_id=?",
+                Integer.class, promotion)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT code FROM order_promotion_snapshots WHERE order_id=?",
+                String.class, order)).isEqualTo("SAVE50");
+        var retried = body(browser.send("POST", "/checkout", input), 201);
+        assertThat(retried.get("orderId").asText()).isEqualTo(order.toString());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM promotion_redemptions WHERE promotion_id=?",
+                Integer.class, promotion)).isEqualTo(1);
+        input.put("promotionCode", "OTHER99");
+        body(browser.send("POST", "/checkout", input), 409);
+        jdbc.update("UPDATE promotions SET name='Later edit',active=false WHERE id=?", promotion);
+        assertThat(jdbc.queryForObject("SELECT name FROM order_promotion_snapshots WHERE order_id=?",
+                String.class, order)).isEqualTo("Checkout promotion");
+    }
+
+    @Test
+    void promotionEligibilityFailureLeavesCartActiveAndConsumesNoUsage() throws Exception {
+        ready();
+        UUID promotion = promotion("TOOHIGH", "PERCENTAGE", "20", null, "100", "10", 1L, 1L);
+        var input = request(); input.put("promotionCode", "TOOHIGH");
+        body(browser.send("POST", "/checkout", input), 409);
+        intact();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM promotion_redemptions WHERE promotion_id=?",
+                Integer.class, promotion)).isZero();
+    }
+
+    @Test
+    void concurrentPromotedCheckoutsCannotExceedFinalUsageSlot() throws Exception {
+        ready();
+        UUID promotion = promotion("LASTSLOT", "PERCENTAGE", "25", null, "0", null, 1L, null);
+        UUID secondCustomer = accountRow("CUSTOMER");
+        UUID secondAddress = UUID.randomUUID(), secondCart = UUID.randomUUID();
+        jdbc.update("""
+INSERT INTO customer_addresses(id,user_id,label,street,building,city,country_code,delivery_zone_id,created_at,updated_at)
+VALUES (?,?,'Home','Second Street','2','Cairo','EG',?,now(),now())
+""", secondAddress, secondCustomer, zone);
+        jdbc.update("""
+INSERT INTO carts(id,customer_id,branch_id,restaurant_id,status,created_at,updated_at)
+VALUES (?,?,?,?,'ACTIVE',now(),now())
+""", secondCart, secondCustomer, branch, restaurant);
+        jdbc.update("""
+INSERT INTO cart_items(id,cart_id,menu_item_id,restaurant_id,quantity,acknowledged_unit_price,created_at,updated_at)
+VALUES (?,?,?,?,1,80,now(),now())
+""", UUID.randomUUID(), secondCart, item, restaurant);
+        Browser secondBrowser = login(secondCustomer);
+        secondBrowser.key = UUID.randomUUID().toString();
+        var firstInput = request(); firstInput.put("promotionCode", "LASTSLOT");
+        var secondInput = new HashMap<String,Object>();
+        secondInput.put("cartId", secondCart); secondInput.put("cartVersion", 0);
+        secondInput.put("savedAddressId", secondAddress); secondInput.put("paymentMethod", "CASH");
+        secondInput.put("promotionCode", "LASTSLOT");
+        var responses = race(
+                () -> browser.send("POST", "/checkout", firstInput),
+                () -> secondBrowser.send("POST", "/checkout", secondInput));
+        assertThat(responses.stream().map(HttpResponse::statusCode).toList())
+                .containsExactlyInAnyOrder(201, 409);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM promotion_redemptions WHERE promotion_id=?",
+                Integer.class, promotion)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM carts WHERE id IN (?,?) AND status='ACTIVE'",
+                Integer.class, cartId(), secondCart)).isEqualTo(1);
     }
 
     @Test

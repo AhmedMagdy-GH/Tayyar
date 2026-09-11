@@ -20,7 +20,8 @@ public class CheckoutStore {
     }
 
     public record Receipt(
-            UUID cart, long version, UUID address, String method, CheckoutDtos.Summary summary) {}
+            UUID cart, long version, UUID address, String method, String promotionCode,
+            CheckoutDtos.Summary summary) {}
 
     public record Delivery(OrderDtos.AddressSnapshot address, BigDecimal fee, BigDecimal minimum) {}
 
@@ -38,7 +39,7 @@ public class CheckoutStore {
         return jdbc
                 .query(
                         """
-SELECT cr.cart_id,cr.cart_version,cr.saved_address_id,cr.payment_method,
+SELECT cr.cart_id,cr.cart_version,cr.saved_address_id,cr.payment_method,cr.promotion_code,
        o.id,o.merchandise_subtotal,o.delivery_fee,o.discount_total,o.final_total,o.currency,o.created_at
 FROM checkout_receipts cr JOIN orders o ON o.id=cr.order_id
 WHERE cr.customer_id=? AND cr.idempotency_key=?
@@ -49,6 +50,7 @@ WHERE cr.customer_id=? AND cr.idempotency_key=?
                                         r.getLong("cart_version"),
                                         r.getObject("saved_address_id", UUID.class),
                                         r.getString("payment_method"),
+                                        r.getString("promotion_code"),
                                         new CheckoutDtos.Summary(
                                                 r.getObject("id", UUID.class),
                                                 "PLACED",
@@ -159,17 +161,19 @@ WHERE a.id=? AND a.user_id=? AND z.active AND c.active AND d.enabled
             CheckoutDtos.Request request,
             UUID order,
             UUID payment,
+            String promotionCode,
             Instant now) {
         jdbc.update(
                 """
-INSERT INTO checkout_receipts(customer_id,idempotency_key,cart_id,cart_version,saved_address_id,payment_method,order_id,payment_id,created_at)
-VALUES (?,?,?,?,?,'CASH',?,?,?)
+INSERT INTO checkout_receipts(customer_id,idempotency_key,cart_id,cart_version,saved_address_id,payment_method,promotion_code,order_id,payment_id,created_at)
+VALUES (?,?,?,?,?,'CASH',?,?,?,?)
 """,
                 customer,
                 key,
                 request.cartId(),
                 request.cartVersion(),
                 request.savedAddressId(),
+                promotionCode,
                 order,
                 payment,
                 Timestamp.from(now));
