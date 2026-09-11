@@ -90,15 +90,22 @@ public class IdentitySecurityConfiguration {
                                         .permitAll()
                                         .requestMatchers("/api/v1/users/me/addresses/**")
                                         .hasRole("CUSTOMER")
-                                        .requestMatchers("/api/v1/admin/cities/**", "/api/v1/admin/delivery-zones/**")
+                                        .requestMatchers("/api/v1/cart", "/api/v1/cart/**")
+                                        .hasRole("CUSTOMER")
+                                        .requestMatchers(
+                                                "/api/v1/admin/cities/**",
+                                                "/api/v1/admin/delivery-zones/**")
                                         .hasRole("ADMIN")
                                         .requestMatchers(HttpMethod.GET, "/api/v1/geography/**")
                                         .hasAnyRole("CUSTOMER", "RESTAURANT_OWNER", "ADMIN")
-                                        .requestMatchers(HttpMethod.GET, "/api/v1/branches/*/serviceability")
+                                        .requestMatchers(
+                                                HttpMethod.GET, "/api/v1/branches/*/serviceability")
                                         .hasRole("CUSTOMER")
                                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me")
                                         .authenticated()
-                                        .requestMatchers("/api/v1/admin/restaurant-applications/**", "/api/v1/admin/restaurants/**")
+                                        .requestMatchers(
+                                                "/api/v1/admin/restaurant-applications/**",
+                                                "/api/v1/admin/restaurants/**")
                                         .hasRole("ADMIN")
                                         .requestMatchers("/api/v1/restaurant-applications/**")
                                         .hasAnyRole("CUSTOMER", "ADMIN")
@@ -128,7 +135,7 @@ public class IdentitySecurityConfiguration {
                                                                         : "ACCESS_DENIED",
                                                                 error instanceof CsrfException
                                                                         ? "CSRF token is missing or"
-                                                                              + " invalid"
+                                                                                + " invalid"
                                                                         : "Access denied")))
                 .logout(
                         logout ->

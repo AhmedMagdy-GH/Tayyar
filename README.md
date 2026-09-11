@@ -22,7 +22,10 @@ Delivery Zones provides managed cities/areas, versioned branch delivery rules,
 private address-zone selection and server-side serviceability evaluation.
 Discovery provides public restaurant search, branch choices, effective branch menus,
 bounded filtering/sorting/pagination and optional zone or owned-address serviceability.
-Cart, Checkout, ordering and frontend remain unimplemented.
+Cart provides one lazy active cart per customer, single-branch lines, authoritative
+effective pricing/availability, totals, explicit replacement and concurrency checks.
+Checkout, ordering and frontend remain unimplemented.
+See [Cart API and checkpoint](docs/cart.md).
 See [Discovery and Search API and checkpoint](docs/discovery.md).
 See [Delivery Zones API and checkpoint](docs/delivery-zones.md).
 See [Customer Addresses API and checkpoint](docs/addresses.md).
@@ -93,7 +96,8 @@ Branches adds `V4__create_branches.sql`.
 Menu adds `V5__create_restaurant_menus.sql`.
 Customer Addresses adds `V6__create_customer_addresses.sql`.
 Delivery Zones adds `V7__create_delivery_zones.sql`.
-All seven must be applied before normal startup. The migration account needs
+Cart adds `V8__create_customer_carts.sql`.
+All eight must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 
