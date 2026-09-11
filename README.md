@@ -26,7 +26,10 @@ Cart provides one lazy active cart per customer, single-branch lines, authoritat
 effective pricing/availability, totals, explicit replacement and concurrency checks.
 Order and Payment Foundation provides durable order/item/address snapshots, explicit
 order/payment state machines, immutable histories and transactional transition primitives.
-Checkout, order operations, payment-provider integration and frontend remain unimplemented.
+Checkout provides atomic CASH purchases, durable idempotency, authoritative revalidation
+and explicit Cart price reconfirmation. Order operations, payment-provider integration
+and frontend remain unimplemented.
+See [Checkout API and checkpoint](docs/checkout.md).
 See [Order and Payment Foundation checkpoint](docs/order-payment-foundation.md).
 See [Cart API and checkpoint](docs/cart.md).
 See [Discovery and Search API and checkpoint](docs/discovery.md).
@@ -101,7 +104,8 @@ Customer Addresses adds `V6__create_customer_addresses.sql`.
 Delivery Zones adds `V7__create_delivery_zones.sql`.
 Cart adds `V8__create_customer_carts.sql`.
 Order and Payment Foundation adds `V9__create_orders_and_payments.sql`.
-All nine must be applied before normal startup. The migration account needs
+Checkout adds `V10__create_checkout_receipts.sql`.
+All ten must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 

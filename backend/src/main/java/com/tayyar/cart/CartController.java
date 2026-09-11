@@ -71,6 +71,12 @@ public class CartController {
         service.clear(actor, parsed.requiredUuid("cartId"), parsed.requiredVersion("version"));
     }
 
+    @PostMapping("/reconfirm-prices")
+    public View reconfirm(
+            @AuthenticationPrincipal SessionPrincipal actor, @Valid @RequestBody Reconfirm input) {
+        return service.reconfirm(actor, input);
+    }
+
     @PostMapping("/replace")
     @ResponseStatus(HttpStatus.CREATED)
     public View replace(

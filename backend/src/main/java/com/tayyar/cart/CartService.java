@@ -19,15 +19,35 @@ public class CartService {
     private final CartQuery query;
     private final CartStore store;
     private final Clock clock;
+    private final CartValidationLocks validationLocks;
 
-    public CartService(CartQuery query, CartStore store, Clock clock) {
+    public CartService(
+            CartQuery query, CartStore store, Clock clock, CartValidationLocks validationLocks) {
         this.query = query;
         this.store = store;
         this.clock = clock;
+        this.validationLocks = validationLocks;
     }
 
     public Optional<View> get(SessionPrincipal actor) {
         return query.active(actor.id(), clock.instant());
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public View reconfirm(SessionPrincipal actor, Reconfirm input) {
+        store.lockCustomer(actor.id());
+        var cart = store.lockActive(actor.id()).orElseThrow(CartException::missing);
+        CartRules.cart(cart.id(), input.cartId(), cart.version(), input.cartVersion());
+        validationLocks.lock(cart);
+        var view = readRequired(actor.id());
+        if (view.items().isEmpty()
+                || view.items().stream().anyMatch(line -> !line.currentlyAvailable()))
+            throw CartException.conflict(
+                    "Cart contains unavailable items; review it before reconfirming prices");
+        var now = clock.instant();
+        store.reconfirm(cart, view.items(), now);
+        store.touch(cart, now);
+        return readRequired(actor.id());
     }
 
     @Transactional

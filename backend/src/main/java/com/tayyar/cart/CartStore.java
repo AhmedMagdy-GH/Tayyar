@@ -16,7 +16,7 @@ public class CartStore {
         this.jdbc = jdbc;
     }
 
-    record LockedCart(UUID id, UUID branch, UUID restaurant, long version) {}
+    public record LockedCart(UUID id, UUID branch, UUID restaurant, long version) {}
 
     record LockedLine(UUID id, int quantity, long version) {}
 
@@ -159,6 +159,29 @@ public class CartStore {
     public int lineCount(UUID cart) {
         return jdbc.queryForObject(
                 "SELECT count(*) FROM cart_items WHERE cart_id=?", Integer.class, cart);
+    }
+
+    public void reconfirm(LockedCart cart, List<CartDtos.Line> lines, Instant now) {
+        List<Object[]> batch =
+                lines.stream()
+                        .map(
+                                line ->
+                                        new Object[] {
+                                            line.currentUnitPrice(),
+                                            Timestamp.from(now),
+                                            line.id(),
+                                            cart.id(),
+                                            line.version()
+                                        })
+                        .toList();
+        int[] changed =
+                jdbc.batchUpdate(
+                        "UPDATE cart_items SET"
+                            + " acknowledged_unit_price=?,version=version+1,updated_at=? WHERE id=?"
+                            + " AND cart_id=? AND version=?",
+                        batch);
+        for (int count : changed)
+            if (count != 1) throw CartException.conflict("Cart changed; reload and retry");
     }
 
     public void touch(LockedCart cart, Instant now) {

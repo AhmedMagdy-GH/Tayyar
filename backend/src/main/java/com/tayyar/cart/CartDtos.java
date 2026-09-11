@@ -32,6 +32,8 @@ public final class CartDtos {
 
     public record Versions(UUID cartId, long cartVersion, long itemVersion) {}
 
+    public record Reconfirm(@NotNull UUID cartId, @NotNull @PositiveOrZero Long cartVersion) {}
+
     public record BranchView(
             UUID id,
             UUID restaurantId,
