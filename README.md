@@ -24,7 +24,10 @@ Discovery provides public restaurant search, branch choices, effective branch me
 bounded filtering/sorting/pagination and optional zone or owned-address serviceability.
 Cart provides one lazy active cart per customer, single-branch lines, authoritative
 effective pricing/availability, totals, explicit replacement and concurrency checks.
-Checkout, ordering and frontend remain unimplemented.
+Order and Payment Foundation provides durable order/item/address snapshots, explicit
+order/payment state machines, immutable histories and transactional transition primitives.
+Checkout, order operations, payment-provider integration and frontend remain unimplemented.
+See [Order and Payment Foundation checkpoint](docs/order-payment-foundation.md).
 See [Cart API and checkpoint](docs/cart.md).
 See [Discovery and Search API and checkpoint](docs/discovery.md).
 See [Delivery Zones API and checkpoint](docs/delivery-zones.md).
@@ -97,7 +100,8 @@ Menu adds `V5__create_restaurant_menus.sql`.
 Customer Addresses adds `V6__create_customer_addresses.sql`.
 Delivery Zones adds `V7__create_delivery_zones.sql`.
 Cart adds `V8__create_customer_carts.sql`.
-All eight must be applied before normal startup. The migration account needs
+Order and Payment Foundation adds `V9__create_orders_and_payments.sql`.
+All nine must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 

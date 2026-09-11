@@ -56,7 +56,7 @@ class BackendApplicationIT extends PostgresIntegrationTest {
     @Test
     void migrationsValidateAndAreNotAppliedTwice() {
         flyway.validate();
-        assertThat(flyway.info().applied()).hasSize(9);
+        assertThat(flyway.info().applied()).hasSize(10);
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThatThrownBy(flyway::clean).hasMessageContaining("cleanDisabled");
     }
@@ -124,7 +124,7 @@ class BackendApplicationIT extends PostgresIntegrationTest {
                                         status -> {
                                             jdbc.update(
                                                     "INSERT INTO foundation_probe (id, label)"
-                                                        + " VALUES (?, ?)",
+                                                            + " VALUES (?, ?)",
                                                     id,
                                                     "rollback");
                                             throw new IllegalStateException("rollback requested");
