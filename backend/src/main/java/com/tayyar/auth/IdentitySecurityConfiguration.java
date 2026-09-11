@@ -80,6 +80,7 @@ public class IdentitySecurityConfiguration {
                                         .requestMatchers(
                                                 HttpMethod.GET,
                                                 "/api/v1/health",
+                                                "/api/v1/discovery/**",
                                                 "/api/v1/auth/csrf")
                                         .permitAll()
                                         .requestMatchers(

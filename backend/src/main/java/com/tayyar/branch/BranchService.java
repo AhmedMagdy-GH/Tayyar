@@ -23,16 +23,19 @@ public class BranchService {
     private final BranchJournal journal;
     private final RestaurantService restaurants;
     private final Clock clock;
+    private final BranchScheduleQuery schedules;
 
     public BranchService(
             BranchRepository branches,
             BranchJournal journal,
             RestaurantService restaurants,
-            Clock clock) {
+            Clock clock,
+            BranchScheduleQuery schedules) {
         this.branches = branches;
         this.journal = journal;
         this.restaurants = restaurants;
         this.clock = clock;
+        this.schedules = schedules;
     }
 
     @Transactional
@@ -104,9 +107,7 @@ public class BranchService {
                 branches.findByIdAndRestaurantId(branch, restaurant)
                         .orElseThrow(BranchException::missing);
         var now = clock.instant();
-        boolean open =
-                BranchRules.open(
-                        now, row.timezone(), journal.weekly(branch), journal.special(branch));
+        boolean open = schedules.open(branch, now);
         String state =
                 parent.status() != RestaurantStatus.ACTIVE
                         ? "RESTAURANT_SUSPENDED"

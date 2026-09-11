@@ -21,7 +21,7 @@ public class MenuJournal {
         int rows =
                 jdbc.update(
                         "INSERT INTO restaurant_menus(id,restaurant_id,name,created_at,updated_at)"
-                            + " VALUES (?,?,?,?,?) ON CONFLICT (restaurant_id) DO NOTHING",
+                                + " VALUES (?,?,?,?,?) ON CONFLICT (restaurant_id) DO NOTHING",
                         id,
                         restaurant,
                         name.strip(),
@@ -109,7 +109,7 @@ public class MenuJournal {
         var rows =
                 jdbc.query(
                         "SELECT id,name,description,active,position FROM menu_categories WHERE"
-                            + " restaurant_id=? AND id=?",
+                                + " restaurant_id=? AND id=?",
                         categoryMapper,
                         restaurant,
                         id);
@@ -133,7 +133,7 @@ public class MenuJournal {
     public void editCategory(UUID restaurant, UUID id, EditCategory input, Instant now) {
         if (jdbc.update(
                         "UPDATE menu_categories SET name=?,description=?,active=?,updated_at=?"
-                            + " WHERE restaurant_id=? AND id=?",
+                                + " WHERE restaurant_id=? AND id=?",
                         input.name().strip(),
                         input.description(),
                         input.active(),
@@ -168,7 +168,7 @@ public class MenuJournal {
         var rows =
                 jdbc.query(
                         "SELECT id,name,description,active,position FROM menu_categories WHERE"
-                            + " menu_id=? ORDER BY position,id LIMIT ? OFFSET ?",
+                                + " menu_id=? ORDER BY position,id LIMIT ? OFFSET ?",
                         categoryMapper,
                         menu.id(),
                         window.size(),
@@ -238,7 +238,7 @@ public class MenuJournal {
         item(restaurant, item);
         if (jdbc.update(
                         "DELETE FROM branch_menu_item_overrides WHERE branch_id=? AND item_id=? AND"
-                            + " restaurant_id=?",
+                                + " restaurant_id=?",
                         branch,
                         item,
                         restaurant)
@@ -251,10 +251,12 @@ public class MenuJournal {
                 + " AND o.branch_id=? WHERE i.restaurant_id=?";
     private static final String EFFECTIVE_SELECT =
             "SELECT i.id,i.category_id,i.name,i.description,i.base_price,o.price AS"
-                + " price_override,o.available AS"
-                + " availability_override,COALESCE(o.price,i.base_price) AS"
-                + " effective_price,(m.active AND c.active AND i.active AND"
-                + " COALESCE(o.available,i.available)) AS effective_available,m.currency";
+                    + " price_override,o.available AS"
+                    + " availability_override,"
+                    + MenuReadSql.PRICE
+                    + " AS effective_price,"
+                    + MenuReadSql.AVAILABLE
+                    + " AS effective_available,m.currency";
     private final RowMapper<EffectiveItem> effectiveMapper =
             (r, n) ->
                     new EffectiveItem(

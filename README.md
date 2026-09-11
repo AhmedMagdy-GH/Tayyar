@@ -20,7 +20,10 @@ Customer Addresses provides private saved addresses, structured locations and at
 default selection with ownership and version checks.
 Delivery Zones provides managed cities/areas, versioned branch delivery rules,
 private address-zone selection and server-side serviceability evaluation.
-Discovery, Cart, ordering and frontend remain unimplemented.
+Discovery provides public restaurant search, branch choices, effective branch menus,
+bounded filtering/sorting/pagination and optional zone or owned-address serviceability.
+Cart, Checkout, ordering and frontend remain unimplemented.
+See [Discovery and Search API and checkpoint](docs/discovery.md).
 See [Delivery Zones API and checkpoint](docs/delivery-zones.md).
 See [Customer Addresses API and checkpoint](docs/addresses.md).
 See [Menu API and checkpoint](docs/menu.md).

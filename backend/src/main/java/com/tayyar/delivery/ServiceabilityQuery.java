@@ -39,7 +39,7 @@ SELECT EXISTS(SELECT 1 FROM delivery_zones z JOIN cities c ON c.id=z.city_id
 SELECT a.delivery_zone_id, b.id AS branch_id, r.status AS restaurant_status,
        b.status AS branch_status, b.paused, z.active AS zone_active,
        c.active AS city_active, d.id AS rule_id, d.enabled,
-       d.delivery_fee, d.minimum_order, d.eta_min_minutes, d.eta_max_minutes
+       d.delivery_fee, d.minimum_order, d.eta_min_minutes, d.eta_max_minutes, %s AS reason
 FROM customer_addresses a
 CROSS JOIN branches b
 JOIN restaurants r ON r.id=b.restaurant_id
@@ -47,7 +47,8 @@ LEFT JOIN delivery_zones z ON z.id=a.delivery_zone_id
 LEFT JOIN cities c ON c.id=z.city_id
 LEFT JOIN branch_delivery_zones d ON d.branch_id=b.id AND d.delivery_zone_id=z.id
 WHERE a.id=? AND a.user_id=? AND b.id=?
-""",
+"""
+                                .formatted(DeliveryReadSql.REASON),
                         (rs, n) -> map(rs),
                         address,
                         user,
@@ -63,33 +64,24 @@ WHERE a.id=? AND a.user_id=? AND b.id=?
         if (branches.isEmpty()) return List.of();
         return named.query(
                 """
-                SELECT z.id AS delivery_zone_id, b.id AS branch_id, r.status AS restaurant_status,
-                       b.status AS branch_status, b.paused, z.active AS zone_active,
-                       c.active AS city_active, d.id AS rule_id, d.enabled,
-                       d.delivery_fee, d.minimum_order, d.eta_min_minutes, d.eta_max_minutes
-                FROM branches b JOIN restaurants r ON r.id=b.restaurant_id
-                JOIN delivery_zones z ON z.id=:zone
-                JOIN cities c ON c.id=z.city_id
-                LEFT JOIN branch_delivery_zones d ON d.branch_id=b.id AND d.delivery_zone_id=z.id
-                WHERE b.id IN (:branches)
-                """,
+SELECT z.id AS delivery_zone_id, b.id AS branch_id, r.status AS restaurant_status,
+       b.status AS branch_status, b.paused, z.active AS zone_active,
+       c.active AS city_active, d.id AS rule_id, d.enabled,
+       d.delivery_fee, d.minimum_order, d.eta_min_minutes, d.eta_max_minutes, %s AS reason
+FROM branches b JOIN restaurants r ON r.id=b.restaurant_id
+JOIN delivery_zones z ON z.id=:zone
+JOIN cities c ON c.id=z.city_id
+LEFT JOIN branch_delivery_zones d ON d.branch_id=b.id AND d.delivery_zone_id=z.id
+WHERE b.id IN (:branches)
+"""
+                        .formatted(DeliveryReadSql.REASON),
                 Map.of("zone", zone, "branches", branches),
                 (rs, n) -> map(rs));
     }
 
     private Eligibility map(ResultSet rs) throws SQLException {
         UUID zone = rs.getObject("delivery_zone_id", UUID.class);
-        Reason reason;
-        if (zone == null) reason = Reason.ADDRESS_ZONE_REQUIRED;
-        else if (!"ACTIVE".equals(rs.getString("restaurant_status")))
-            reason = Reason.RESTAURANT_SUSPENDED;
-        else if (!"ACTIVE".equals(rs.getString("branch_status"))) reason = Reason.BRANCH_INACTIVE;
-        else if (rs.getBoolean("paused")) reason = Reason.BRANCH_PAUSED;
-        else if (!rs.getBoolean("city_active")) reason = Reason.CITY_INACTIVE;
-        else if (!rs.getBoolean("zone_active")) reason = Reason.ZONE_INACTIVE;
-        else if (rs.getObject("rule_id") == null) reason = Reason.ZONE_NOT_SERVED;
-        else if (!rs.getBoolean("enabled")) reason = Reason.RELATIONSHIP_DISABLED;
-        else reason = Reason.SERVICEABLE;
+        Reason reason = Reason.valueOf(rs.getString("reason"));
         boolean ok = reason == Reason.SERVICEABLE;
         return new Eligibility(
                 rs.getObject("branch_id", UUID.class),
