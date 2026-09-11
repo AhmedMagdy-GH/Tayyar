@@ -989,6 +989,23 @@ VALUES (?,?,?,?,1,80,now(),now())
     }
 
     @Test
+    void checkoutRateLimitIsPerAuthenticatedCustomerAndSafe() throws Exception {
+        ready();
+        String raw = "checkout-user:" + customer;
+        String key = java.util.HexFormat.of().formatHex(
+                java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        jdbc.update("INSERT INTO auth_rate_limits(key_hash,window_started,attempts) VALUES (?,now(),20)",
+                key);
+        var response = browser.send("POST", "/checkout", request());
+        assertThat(response.statusCode()).isEqualTo(429);
+        assertThat(response.headers().firstValue("Retry-After")).contains("900");
+        assertThat(response.body()).contains("RATE_LIMITED")
+                .doesNotContain(customer.toString(), browser.key);
+        intact();
+    }
+
+    @Test
     void checkoutWaitsForEarlierConfigurationWritersAndRevalidatesCommittedValues()
             throws Exception {
         ready();

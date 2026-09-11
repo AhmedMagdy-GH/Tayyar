@@ -13,7 +13,8 @@ public record IdentityProperties(
         @NotNull Duration absoluteLifetime,
         @Min(1) int loginLimit,
         @Min(1) int registrationLimit,
-        @Min(1) int csrfLimit) {
+        @Min(1) int csrfLimit,
+        @Min(1) int checkoutLimit) {
     @AssertTrue(message = "Absolute session lifetime must be positive")
     public boolean isLifetimeValid() {
         return absoluteLifetime != null

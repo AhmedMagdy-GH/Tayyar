@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
@@ -39,11 +40,23 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return response(code, message, status, headers, request, List.of());
     }
 
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
+            HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        if (rootCause(ex) instanceof RequestBodyTooLargeException) {
+            return response("PAYLOAD_TOO_LARGE", "Request body exceeds the configured limit",
+                    HttpStatus.PAYLOAD_TOO_LARGE, headers, request, List.of());
+        }
+        return response("BAD_REQUEST", "Bad Request", status, headers, request, List.of());
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<Object> unexpected(Exception ex, ServletWebRequest request) {
         // Exception messages can contain SQL, submitted secrets, or provider payloads.
-        LOG.error("Unexpected API failure; correlationId={}, exceptionType={}",
-                request.getRequest().getAttribute(RequestCorrelationFilter.ATTRIBUTE), ex.getClass().getName());
+        StackTraceElement origin = ex.getStackTrace().length == 0 ? null : ex.getStackTrace()[0];
+        LOG.error("Unexpected API failure; correlationId={}, exceptionType={}, failureAt={}",
+                request.getRequest().getAttribute(RequestCorrelationFilter.ATTRIBUTE),
+                ex.getClass().getName(), origin);
         return response("INTERNAL_ERROR", "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR,
                 HttpHeaders.EMPTY, request, List.of());
     }
@@ -54,5 +67,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         ApiError error = new ApiError(code, message, Instant.now(), servletRequest.getRequestURI(),
                 (String) servletRequest.getAttribute(RequestCorrelationFilter.ATTRIBUTE), fields);
         return new ResponseEntity<>(error, headers, status);
+    }
+
+    private Throwable rootCause(Throwable error) {
+        Throwable result = error;
+        while (result.getCause() != null && result.getCause() != result) result = result.getCause();
+        return result;
     }
 }

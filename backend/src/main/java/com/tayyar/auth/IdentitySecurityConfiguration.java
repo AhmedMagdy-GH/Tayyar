@@ -6,9 +6,11 @@ import jakarta.servlet.DispatcherType;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.*;
@@ -17,6 +19,8 @@ import org.springframework.security.web.authentication.session.*;
 import org.springframework.security.web.context.*;
 import org.springframework.security.web.csrf.*;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.time.Clock;
 import java.util.*;
@@ -63,13 +67,22 @@ public class IdentitySecurityConfiguration {
             Clock clock,
             SecurityErrorWriter errors,
             SecurityContextRepository contexts,
-            CsrfTokenRepository csrf)
+            CsrfTokenRepository csrf,
+            @Qualifier("corsConfigurationSource") CorsConfigurationSource cors)
             throws Exception {
         http.securityContext(
                         context ->
                                 context.securityContextRepository(contexts)
                                         .requireExplicitSave(true))
                 .csrf(config -> config.csrfTokenRepository(csrf))
+                .cors(config -> config.configurationSource(cors))
+                .headers(headers -> headers
+                        .contentTypeOptions(Customizer.withDefaults())
+                        .frameOptions(frame -> frame.deny())
+                        .referrerPolicy(policy -> policy.policy(ReferrerPolicy.NO_REFERRER))
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .preload(true)))
                 .requestCache(cache -> cache.disable())
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
@@ -77,6 +90,13 @@ public class IdentitySecurityConfiguration {
                         rules ->
                                 rules.dispatcherTypeMatchers(DispatcherType.ERROR)
                                         .permitAll()
+                                        .requestMatchers(
+                                                HttpMethod.GET,
+                                                "/actuator/health/liveness",
+                                                "/actuator/health/readiness")
+                                        .permitAll()
+                                        .requestMatchers("/actuator/**")
+                                        .hasRole("ADMIN")
                                         .requestMatchers(
                                                 HttpMethod.GET,
                                                 "/api/v1/health",

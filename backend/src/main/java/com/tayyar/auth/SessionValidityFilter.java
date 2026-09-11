@@ -1,5 +1,6 @@
 package com.tayyar.auth;
 
+import com.tayyar.common.api.RequestCorrelationFilter;
 import com.tayyar.user.*;
 
 import jakarta.servlet.*;
@@ -53,6 +54,7 @@ public class SessionValidityFilter extends OncePerRequestFilter {
                         request, response, 401, "SESSION_INVALID", "Authentication is required");
                 return;
             }
+            request.setAttribute(RequestCorrelationFilter.ACTOR_ATTRIBUTE, principal.id());
         }
         chain.doFilter(request, response);
     }

@@ -23,8 +23,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ApiExceptionHandlerTests.ProbeController.class)
+@org.springframework.test.context.TestPropertySource(properties = "tayyar.operations.max-request-body=64KB")
 @Import({ApiExceptionHandlerTests.ProbeController.class, ApiExceptionHandler.class,
-        ApiErrorController.class, RequestCorrelationFilter.class, com.tayyar.support.WebSliceSecurity.class})
+        ApiErrorController.class, RequestCorrelationFilter.class, RequestSizeLimitFilter.class,
+        com.tayyar.support.WebSliceSecurity.class})
 class ApiExceptionHandlerTests {
     @Autowired MockMvc mvc;
 
@@ -88,6 +90,17 @@ class ApiExceptionHandlerTests {
         mvc.perform(get("/missing"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void rejectsOversizedRequestBodiesSafely() throws Exception {
+        String oversized = "x".repeat(70 * 1024);
+        mvc.perform(post("/test/validation").contentType(MediaType.APPLICATION_JSON)
+                        .content(oversized))
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(jsonPath("$.code").value("PAYLOAD_TOO_LARGE"))
+                .andExpect(jsonPath("$.correlationId").isNotEmpty())
+                .andExpect(content().string(not(containsString(oversized))));
     }
 
     @RestController

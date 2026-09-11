@@ -6,8 +6,9 @@ Tayyar is a food-delivery marketplace being developed as a modular monolith.
 - `frontend/`: reserved for React + TypeScript; not initialized. UI/UX will be designed separately in Figma and Google Stitch.
 - `docs/`: architecture, database inspection, and Foundation verification guidance.
 
-Implemented API: `GET /api/v1/health` returns HTTP 200 with `{"status":"UP","service":"tayyar-backend"}`.
-It identifies the service; it does not establish database readiness. PostgreSQL
+Implemented API: `GET /api/v1/health` remains the compatibility service-status endpoint.
+Actuator supplies `GET /actuator/health/liveness` and `/actuator/health/readiness`;
+only those two infrastructure probes are anonymous. PostgreSQL
 connectivity, Foundation, and Identity are implemented. Identity provides customer
 registration, login/logout, JDBC sessions, CSRF, and the current-user endpoint.
 Restaurants provides customer applications, admin reviews, immutable resubmission
@@ -47,6 +48,8 @@ See [Branches API and checkpoint](docs/branches.md).
 See [Restaurants API and checkpoint](docs/restaurants.md).
 See [Identity API and verification](docs/identity.md) and the earlier
 [Foundation checkpoint](docs/foundation.md).
+See [Production hardening and observability](docs/production-hardening.md) for
+logging, probes, management access, metrics, profiles, limits, and shutdown behavior.
 
 ## Tests
 
@@ -80,7 +83,9 @@ cd backend
 
 On macOS/Linux, use `./mvnw` instead of `.\mvnw.cmd`.
 
-The health endpoint is available at `http://localhost:8080/api/v1/health`.
+The compatibility health endpoint is available at `http://localhost:8080/api/v1/health`.
+Infrastructure probes are `/actuator/health/liveness` and
+`/actuator/health/readiness`. Do not route public traffic to other Actuator paths.
 Browser authentication requires HTTPS because the session cookie is Secure by
 default. Use same-origin HTTPS for frontend/API integration. Tests exercise HTTP
 with an explicit cookie harness; they do not require weakening the secure default.
@@ -116,7 +121,8 @@ Delivery and Driver Operations adds `V11__create_driver_delivery_operations.sql`
 Reviews and Favorites adds `V12__create_reviews_and_favorites.sql`.
 Promotions adds `V13__create_promotions.sql`.
 Notifications adds `V14__create_notifications.sql`.
-All fourteen must be applied before normal startup. The migration account needs
+Platform Admin Operations adds `V15__create_admin_operations.sql`.
+All fifteen must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 

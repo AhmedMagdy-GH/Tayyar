@@ -28,7 +28,7 @@ class OrderPaymentFoundationIT extends PostgresIntegrationTest {
     @Autowired PlatformTransactionManager transactions;
     @Autowired OrderService orders;
     @Autowired PaymentService payments;
-    @Autowired RequestMappingHandlerMapping mappings;
+    @Autowired @Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping mappings;
     @MockitoSpyBean OrderStore orderStore;
     @MockitoSpyBean PaymentStore paymentStore;
 
