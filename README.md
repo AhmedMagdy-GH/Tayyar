@@ -36,6 +36,7 @@ Card-provider integration and frontend remain unimplemented.
 See [Delivery and Driver Operations API and checkpoint](docs/driver-operations.md).
 See [Order Operations API and checkpoint](docs/order-operations.md).
 See [Checkout API and checkpoint](docs/checkout.md).
+See [Notifications API and checkpoint](docs/module-16-notifications.md).
 See [Order and Payment Foundation checkpoint](docs/order-payment-foundation.md).
 See [Cart API and checkpoint](docs/cart.md).
 See [Discovery and Search API and checkpoint](docs/discovery.md).
@@ -112,7 +113,10 @@ Cart adds `V8__create_customer_carts.sql`.
 Order and Payment Foundation adds `V9__create_orders_and_payments.sql`.
 Checkout adds `V10__create_checkout_receipts.sql`.
 Delivery and Driver Operations adds `V11__create_driver_delivery_operations.sql`.
-All eleven must be applied before normal startup. The migration account needs
+Reviews and Favorites adds `V12__create_reviews_and_favorites.sql`.
+Promotions adds `V13__create_promotions.sql`.
+Notifications adds `V14__create_notifications.sql`.
+All fourteen must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 

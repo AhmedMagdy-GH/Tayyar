@@ -5,6 +5,7 @@ import static com.tayyar.delivery.DriverOperationsDtos.*;
 import com.tayyar.auth.SessionPrincipal;
 import com.tayyar.order.*;
 import com.tayyar.payment.*;
+import com.tayyar.notification.NotificationService;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -21,18 +22,21 @@ public class DriverOrderService {
     private final OrderService orders;
     private final PaymentService payments;
     private final Clock clock;
+    private final NotificationService notifications;
 
     public DriverOrderService(
             DriverOperationsStore store,
             DriverOperationsQuery query,
             OrderService orders,
             PaymentService payments,
-            Clock clock) {
+            Clock clock,
+            NotificationService notifications) {
         this.store = store;
         this.query = query;
         this.orders = orders;
         this.payments = payments;
         this.clock = clock;
+        this.notifications = notifications;
     }
 
     @PreAuthorize("hasRole('DRIVER')")
@@ -57,6 +61,7 @@ public class DriverOrderService {
                 OrderStatus.OUT_FOR_DELIVERY,
                 actor,
                 "Order collected by assigned Driver");
+        notifications.orderTransition(orderId, OrderStatus.OUT_FOR_DELIVERY);
         return query.details(actor.id(), locked.orderId());
     }
 
@@ -103,6 +108,7 @@ public class DriverOrderService {
             throw DriverOperationsException.conflict("Driver is not busy with this delivery");
         store.changeDriverState(
                 driver, DriverState.AVAILABLE, actor.id(), "Delivery completed", now);
+        notifications.orderTransition(orderId, OrderStatus.DELIVERED);
         return new Completion(
                 order.id(),
                 order.status(),

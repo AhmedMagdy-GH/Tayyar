@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import com.tayyar.order.*;
 import com.tayyar.payment.*;
+import com.tayyar.notification.*;
 import com.tayyar.support.PostgresIntegrationTest;
 
 import org.junit.jupiter.api.*;
@@ -44,6 +45,7 @@ class DriverOperationsIT extends PostgresIntegrationTest {
     @MockitoSpyBean DriverOperationsStore deliveryStore;
     @MockitoSpyBean OrderStore orderStore;
     @MockitoSpyBean PaymentStore paymentStore;
+    @MockitoSpyBean NotificationStore notificationStore;
 
     UUID admin, driver, otherDriver, customer, owner, restaurant, tayyarBranch, restaurantBranch;
     UUID menuItem;
@@ -387,6 +389,10 @@ class DriverOperationsIT extends PostgresIntegrationTest {
         var order = ready(tayyarBranch);
         JsonNode assignment = assign(order, driver);
         assertThat(assignment.get("status").asText()).isEqualTo("ACTIVE");
+        assertThat(jdbc.queryForObject(
+                "SELECT type FROM notifications WHERE recipient_user_id=? AND related_entity_id=?",
+                String.class, driver, UUID.fromString(assignment.get("assignmentId").asText())))
+                .isEqualTo("DELIVERY_ASSIGNED");
         JsonNode queue = body(driverBrowser.send("GET", "/driver/orders", null), 200);
         assertThat(queue.get("total").asLong()).isEqualTo(1);
         JsonNode item = queue.get("items").get(0);
@@ -436,6 +442,11 @@ class DriverOperationsIT extends PostgresIntegrationTest {
                                 assignmentId))
                 .isEqualTo("COMPLETED");
         assertThat(orders.history(order.order().id())).hasSize(6);
+        assertThat(jdbc.queryForList(
+                "SELECT type FROM notifications WHERE recipient_user_id=? AND related_entity_id=?"
+                        + " AND type LIKE 'ORDER_%' ORDER BY created_at,id",
+                String.class, customer, order.order().id()))
+                .containsExactly("ORDER_OUT_FOR_DELIVERY", "ORDER_DELIVERED");
         UUID payment =
                 jdbc.queryForObject(
                         "SELECT id FROM payments WHERE order_id=?", UUID.class, order.order().id());
@@ -495,6 +506,30 @@ class DriverOperationsIT extends PostgresIntegrationTest {
                         "/driver/orders/" + order.order().id() + "/pickup",
                         transition(3, 0)),
                 409);
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM notifications WHERE recipient_user_id=?"
+                        + " AND related_entity_id=? AND type='ORDER_OUT_FOR_DELIVERY'",
+                Integer.class, customer, order.order().id())).isEqualTo(1);
+    }
+
+    @Test
+    void assignmentNotificationFailureRollsBackAssignmentAndDriverState() throws Exception {
+        provisionAndAvailable(driverBrowser, driver);
+        var order = ready(tayyarBranch);
+        doThrow(new IllegalStateException("injected notification failure"))
+                .when(notificationStore)
+                .insert(any(), any(), anyString(), anyString(), any(), any(), anyString(), any());
+        body(adminBrowser.send(
+                "POST", "/admin/delivery-assignments",
+                Map.of("orderId", order.order().id(), "driverId", driver,
+                        "orderVersion", order.order().version())), 500);
+        reset(notificationStore);
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM delivery_assignments WHERE order_id=?",
+                Integer.class, order.order().id())).isZero();
+        assertThat(jdbc.queryForObject(
+                "SELECT state FROM driver_profiles WHERE user_id=?", String.class, driver))
+                .isEqualTo("AVAILABLE");
     }
 
     @Test

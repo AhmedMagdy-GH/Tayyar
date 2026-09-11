@@ -4,6 +4,7 @@ import static com.tayyar.restaurant.RestaurantDtos.*;
 
 import com.tayyar.auth.SessionPrincipal;
 import com.tayyar.user.*;
+import com.tayyar.notification.NotificationService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -22,18 +23,21 @@ public class ApplicationService {
     private final RestaurantJournal journal;
     private final RestaurantOwnerRoleService roles;
     private final Clock clock;
+    private final NotificationService notifications;
 
     public ApplicationService(
             ApplicationRepository applications,
             RestaurantRepository restaurants,
             RestaurantJournal journal,
             RestaurantOwnerRoleService roles,
-            Clock clock) {
+            Clock clock,
+            NotificationService notifications) {
         this.applications = applications;
         this.restaurants = restaurants;
         this.journal = journal;
         this.roles = roles;
         this.clock = clock;
+        this.notifications = notifications;
     }
 
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -94,6 +98,11 @@ public class ApplicationService {
                 restaurantId,
                 clock.instant());
         applications.flush();
+        notifications.applicationDecision(
+                id,
+                application.getCurrentRevision(),
+                application.getApplicantId(),
+                input.outcome());
         return journal.application(id);
     }
 

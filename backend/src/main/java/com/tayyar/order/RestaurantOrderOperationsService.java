@@ -3,6 +3,7 @@ package com.tayyar.order;
 import static com.tayyar.order.OrderOperationsDtos.*;
 
 import com.tayyar.auth.SessionPrincipal;
+import com.tayyar.notification.NotificationService;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -17,12 +18,15 @@ public class RestaurantOrderOperationsService {
     private final OrderOperationsAccess access;
     private final OrderOperationsQuery query;
     private final OrderService orders;
+    private final NotificationService notifications;
 
     public RestaurantOrderOperationsService(
-            OrderOperationsAccess access, OrderOperationsQuery query, OrderService orders) {
+            OrderOperationsAccess access, OrderOperationsQuery query, OrderService orders,
+            NotificationService notifications) {
         this.access = access;
         this.query = query;
         this.orders = orders;
+        this.notifications = notifications;
     }
 
     public Page<Summary> queue(
@@ -86,6 +90,7 @@ public class RestaurantOrderOperationsService {
             throw OrderOperationsException.conflict("Order transition is not allowed");
         try {
             orders.transition(order, version, target, TransitionActor.user(actor), reason);
+            notifications.orderTransition(order, target);
         } catch (OrderException exception) {
             throw OrderOperationsException.conflict("Order changed or transition is not allowed");
         }

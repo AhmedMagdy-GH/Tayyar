@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.tayyar.support.PostgresIntegrationTest;
+import com.tayyar.notification.NotificationStore;
 
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.*;
@@ -40,6 +41,7 @@ class RestaurantsIT extends PostgresIntegrationTest {
     @Autowired PasswordEncoder passwords;
     @Autowired PlatformTransactionManager transactions;
     @MockitoSpyBean RestaurantJournal journal;
+    @MockitoSpyBean NotificationStore notificationStore;
     private final HttpClient http = HttpClient.newHttpClient();
     private static final String PASSWORD = "Restaurant test password!";
     private String hash;
@@ -266,6 +268,10 @@ class RestaurantsIT extends PostgresIntegrationTest {
                                 Integer.class,
                                 id(application)))
                 .isEqualTo(1);
+        assertThat(jdbc.queryForObject(
+                "SELECT type FROM notifications WHERE recipient_user_id=? AND related_entity_id=?",
+                String.class, customer.id(), id(application)))
+                .isEqualTo("RESTAURANT_APPLICATION_APPROVED");
         assertThat(customer.browser().send("GET", "/users/me", null).statusCode()).isEqualTo(401);
         var owner = login(customer.email());
         assertThat(
@@ -311,6 +317,29 @@ class RestaurantsIT extends PostgresIntegrationTest {
                                         input)
                                 .statusCode())
                 .isEqualTo(403);
+    }
+
+    @Test
+    void requiredDecisionNotificationFailureRollsBackReview() throws Exception {
+        var customer = account("CUSTOMER");
+        var admin = account("ADMIN");
+        var application = apply(customer);
+        doThrow(new IllegalStateException("injected notification failure"))
+                .when(notificationStore)
+                .insert(any(), any(), anyString(), anyString(), any(), any(), anyString(), any());
+        body(admin.browser().send(
+                "POST", "/admin/restaurant-applications/" + id(application) + "/decisions",
+                Map.of("outcome", "APPROVED", "version", 0)), 500);
+        reset(notificationStore);
+        assertThat(jdbc.queryForObject(
+                "SELECT status FROM restaurant_applications WHERE id=?",
+                String.class, id(application))).isEqualTo("PENDING");
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM application_decisions WHERE application_id=?",
+                Integer.class, id(application))).isZero();
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM restaurants WHERE application_id=?",
+                Integer.class, id(application))).isZero();
     }
 
     @Test
@@ -365,6 +394,13 @@ class RestaurantsIT extends PostgresIntegrationTest {
                                 Integer.class,
                                 id(original)))
                 .isEqualTo(2);
+        assertThat(jdbc.queryForList(
+                "SELECT type FROM notifications WHERE recipient_user_id=? AND related_entity_id=?"
+                        + " ORDER BY created_at,id",
+                String.class, customer.id(), id(original)))
+                .containsExactly(
+                        "RESTAURANT_APPLICATION_REJECTED",
+                        "RESTAURANT_APPLICATION_APPROVED");
     }
 
     @Test

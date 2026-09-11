@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.tayyar.payment.*;
+import com.tayyar.notification.*;
 import com.tayyar.support.PostgresIntegrationTest;
 
 import org.junit.jupiter.api.*;
@@ -41,6 +42,7 @@ class OrderOperationsIT extends PostgresIntegrationTest {
     @Autowired PaymentService payments;
     @Autowired PlatformTransactionManager transactions;
     @MockitoSpyBean OrderStore orderStore;
+    @MockitoSpyBean NotificationStore notificationStore;
 
     UUID customer,
             foreignCustomer,
@@ -500,6 +502,11 @@ class OrderOperationsIT extends PostgresIntegrationTest {
         assertThat(preparing.get("status").asText()).isEqualTo("PREPARING");
         assertThat(ready.get("status").asText()).isEqualTo("READY_FOR_PICKUP");
         assertThat(orders.history(id)).hasSize(4);
+        assertThat(jdbc.queryForList(
+                        "SELECT type FROM notifications WHERE recipient_user_id=? AND related_entity_id=?"
+                                + " ORDER BY created_at,id",
+                        String.class, customer, id))
+                .containsExactly("ORDER_ACCEPTED", "ORDER_PREPARING", "ORDER_READY_FOR_PICKUP");
         assertThat(
                         jdbc.queryForObject(
                                 "SELECT status FROM payments WHERE order_id=?", String.class, id))
@@ -510,6 +517,9 @@ class OrderOperationsIT extends PostgresIntegrationTest {
                 200);
         assertThat(orders.details(rejected.order().id()).order().status())
                 .isEqualTo(OrderStatus.REJECTED);
+        assertThat(jdbc.queryForObject(
+                "SELECT type FROM notifications WHERE recipient_user_id=? AND related_entity_id=?",
+                String.class, customer, rejected.order().id())).isEqualTo("ORDER_REJECTED");
         body(ownerBrowser.send("POST", path(id, "reject"), reason(3, "Too late")), 409);
         body(ownerBrowser.send("POST", path(id, "start-preparation"), version(3)), 409);
     }
@@ -658,6 +668,24 @@ class OrderOperationsIT extends PostgresIntegrationTest {
         assertThat(race.stream().map(HttpResponse::statusCode).toList())
                 .containsExactlyInAnyOrder(200, 409);
         assertThat(orders.history(duplicate.order().id())).hasSize(2);
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM notifications WHERE related_entity_id=?",
+                Integer.class, duplicate.order().id())).isEqualTo(1);
+    }
+
+    @Test
+    void requiredNotificationFailureRollsBackOrderTransition() throws Exception {
+        var order = create(customer, restaurant, branch, OrderStatus.PLACED);
+        doThrow(new IllegalStateException("injected notification failure"))
+                .when(notificationStore)
+                .insert(any(), any(), anyString(), anyString(), any(), any(), anyString(), any());
+        body(ownerBrowser.send("POST", path(order.order().id(), "accept"), version(0)), 500);
+        reset(notificationStore);
+        assertThat(orders.details(order.order().id()).order().status()).isEqualTo(OrderStatus.PLACED);
+        assertThat(orders.history(order.order().id())).hasSize(1);
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM notifications WHERE related_entity_id=?",
+                Integer.class, order.order().id())).isZero();
     }
 
     @Test

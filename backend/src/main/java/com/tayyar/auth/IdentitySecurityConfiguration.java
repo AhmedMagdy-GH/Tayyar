@@ -119,6 +119,8 @@ public class IdentitySecurityConfiguration {
                                         .hasRole("CUSTOMER")
                                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me")
                                         .authenticated()
+                                        .requestMatchers("/api/v1/notifications/**")
+                                        .authenticated()
                                         .requestMatchers(
                                                 "/api/v1/admin/restaurant-applications/**",
                                                 "/api/v1/admin/restaurants/**")

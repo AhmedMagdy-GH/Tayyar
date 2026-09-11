@@ -4,6 +4,7 @@ import static com.tayyar.delivery.DriverOperationsDtos.*;
 
 import com.tayyar.auth.SessionPrincipal;
 import com.tayyar.order.OrderStatus;
+import com.tayyar.notification.NotificationService;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -15,10 +16,13 @@ import java.time.*;
 public class DeliveryAssignmentService {
     private final DriverOperationsStore store;
     private final Clock clock;
+    private final NotificationService notifications;
 
-    public DeliveryAssignmentService(DriverOperationsStore store, Clock clock) {
+    public DeliveryAssignmentService(
+            DriverOperationsStore store, Clock clock, NotificationService notifications) {
         this.store = store;
         this.clock = clock;
+        this.notifications = notifications;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -42,6 +46,7 @@ public class DeliveryAssignmentService {
                 store.createAssignment(order.id(), input.driverId(), actor.id(), now);
         store.changeDriverState(
                 driver, DriverState.BUSY, actor.id(), "Active delivery assigned", now);
+        notifications.deliveryAssigned(assignment.assignmentId(), input.driverId(), order.id());
         return assignment;
     }
 }
