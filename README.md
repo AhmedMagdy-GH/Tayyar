@@ -50,6 +50,8 @@ See [Identity API and verification](docs/identity.md) and the earlier
 [Foundation checkpoint](docs/foundation.md).
 See [Production hardening and observability](docs/production-hardening.md) for
 logging, probes, management access, metrics, profiles, limits, and shutdown behavior.
+See [Docker and deployment readiness](docs/docker-deployment-readiness.md) for the
+local container workflow and the provider-neutral production deployment contract.
 
 ## Tests
 
@@ -145,3 +147,24 @@ Never use Hibernate `create`/`update`, Flyway `clean`, or automatic baselining a
 See [Identity notes](docs/identity.md) for API usage, security decisions, results,
 remaining prerequisites, and the changed-file manifest. No CI/CD or deployment
 configuration has been added.
+
+## Local Docker environment
+
+Docker Compose runs PostgreSQL 18, a finite Flyway migration job, and the backend.
+It uses an ignored developer-local `.env`; the repository contains placeholders only.
+
+```powershell
+Copy-Item .env.example .env
+# Edit .env and set POSTGRES_SUPERUSER_PASSWORD, DB_MIGRATION_PASSWORD, and DB_PASSWORD.
+docker compose build backend migrate
+docker compose up -d
+docker compose ps --all
+curl.exe http://localhost:8080/actuator/health/liveness
+curl.exe http://localhost:8080/actuator/health/readiness
+docker compose logs -f backend
+docker compose down
+```
+
+`docker compose down` is a normal stop and preserves PostgreSQL data. See the
+deployment-readiness guide before intentionally running the destructive
+`docker compose down --volumes` reset command.
