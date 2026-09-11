@@ -29,6 +29,9 @@ order/payment state machines, immutable histories and transactional transition p
 Checkout provides atomic CASH purchases, durable idempotency, authoritative revalidation
 and explicit Cart price reconfirmation. Order operations, payment-provider integration
 and frontend remain unimplemented.
+Order Operations provides customer order history/details and safe cancellation plus
+OWNER/assigned-STAFF queues and explicit preparation transitions.
+See [Order Operations API and checkpoint](docs/order-operations.md).
 See [Checkout API and checkpoint](docs/checkout.md).
 See [Order and Payment Foundation checkpoint](docs/order-payment-foundation.md).
 See [Cart API and checkpoint](docs/cart.md).
