@@ -27,10 +27,13 @@ effective pricing/availability, totals, explicit replacement and concurrency che
 Order and Payment Foundation provides durable order/item/address snapshots, explicit
 order/payment state machines, immutable histories and transactional transition primitives.
 Checkout provides atomic CASH purchases, durable idempotency, authoritative revalidation
-and explicit Cart price reconfirmation. Order operations, payment-provider integration
-and frontend remain unimplemented.
+and explicit Cart price reconfirmation.
 Order Operations provides customer order history/details and safe cancellation plus
 OWNER/assigned-STAFF queues and explicit preparation transitions.
+Delivery and Driver Operations provides privileged Driver provisioning/assignment,
+Driver availability and assigned queues, pickup, delivery and atomic CASH collection.
+Card-provider integration and frontend remain unimplemented.
+See [Delivery and Driver Operations API and checkpoint](docs/driver-operations.md).
 See [Order Operations API and checkpoint](docs/order-operations.md).
 See [Checkout API and checkpoint](docs/checkout.md).
 See [Order and Payment Foundation checkpoint](docs/order-payment-foundation.md).
@@ -108,7 +111,8 @@ Delivery Zones adds `V7__create_delivery_zones.sql`.
 Cart adds `V8__create_customer_carts.sql`.
 Order and Payment Foundation adds `V9__create_orders_and_payments.sql`.
 Checkout adds `V10__create_checkout_receipts.sql`.
-All ten must be applied before normal startup. The migration account needs
+Delivery and Driver Operations adds `V11__create_driver_delivery_operations.sql`.
+All eleven must be applied before normal startup. The migration account needs
 schema DDL privileges; the runtime account needs only reviewed application-table
 privileges, including the updates used by authentication-version triggers.
 

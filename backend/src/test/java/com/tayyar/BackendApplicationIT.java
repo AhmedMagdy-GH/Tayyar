@@ -56,7 +56,7 @@ class BackendApplicationIT extends PostgresIntegrationTest {
     @Test
     void migrationsValidateAndAreNotAppliedTwice() {
         flyway.validate();
-        assertThat(flyway.info().applied()).hasSize(11);
+        assertThat(flyway.info().applied()).hasSize(12);
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThatThrownBy(flyway::clean).hasMessageContaining("cleanDisabled");
     }
