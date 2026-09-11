@@ -6,6 +6,37 @@ Tayyar is a food-delivery marketplace being developed as a modular monolith.
 - `frontend/`: reserved for React + TypeScript; not initialized. UI/UX will be designed separately in Figma and Google Stitch.
 - `docs/`: architecture, database inspection, and Foundation verification guidance.
 
+## Quick start with Docker
+
+Prerequisites: Git and Docker Desktop (or Docker Engine with Compose). No host Java,
+Maven, PostgreSQL, or `.env` file is required.
+
+```powershell
+docker compose up --build
+```
+
+Compose builds the backend, starts PostgreSQL, runs all migrations once, and starts the
+backend only after migration succeeds. When it is healthy, use:
+
+- API health: <http://localhost:8080/api/v1/health>
+- Liveness: <http://localhost:8080/actuator/health/liveness>
+- Readiness: <http://localhost:8080/actuator/health/readiness>
+
+The command stays attached and displays logs; press `Ctrl+C` to stop it. For a detached
+stack, use `docker compose up --build -d`, inspect it with `docker compose ps --all`, and
+follow logs with `docker compose logs --follow backend`. Run `docker compose down` for a
+normal stop that preserves database data.
+
+To deliberately delete all local database data and rebuild from an empty schema:
+
+```powershell
+docker compose down -v
+```
+
+The Compose defaults are intentionally weak local-development credentials. They are not
+production secrets and must never be reused outside this local stack. Copy `.env.example`
+to an ignored `.env` only when you need local overrides.
+
 Implemented API: `GET /api/v1/health` remains the compatibility service-status endpoint.
 Actuator supplies `GET /actuator/health/liveness` and `/actuator/health/readiness`;
 only those two infrastructure probes are anonymous. PostgreSQL
@@ -150,14 +181,11 @@ configuration has been added.
 
 ## Local Docker environment
 
-Docker Compose runs PostgreSQL 18, a finite Flyway migration job, and the backend.
-It uses an ignored developer-local `.env`; the repository contains placeholders only.
+Docker Compose runs PostgreSQL 18, a finite Flyway migration job, and the backend. The
+zero-configuration path is documented in **Quick start with Docker** above.
 
 ```powershell
-Copy-Item .env.example .env
-# Edit .env and set POSTGRES_SUPERUSER_PASSWORD, DB_MIGRATION_PASSWORD, and DB_PASSWORD.
-docker compose build backend migrate
-docker compose up -d
+docker compose up --build -d
 docker compose ps --all
 curl.exe http://localhost:8080/actuator/health/liveness
 curl.exe http://localhost:8080/actuator/health/readiness
@@ -166,5 +194,5 @@ docker compose down
 ```
 
 `docker compose down` is a normal stop and preserves PostgreSQL data. See the
-deployment-readiness guide before intentionally running the destructive
-`docker compose down --volumes` reset command.
+[deployment-readiness guide](docs/docker-deployment-readiness.md) for optional overrides,
+troubleshooting, and the destructive reset warning.

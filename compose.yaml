@@ -1,17 +1,19 @@
 name: tayyar-local
 
+# These credentials are deliberately weak, local-only defaults. Override them through
+# an ignored .env when needed; never reuse them outside this developer Compose stack.
 services:
   postgres:
     image: postgres:18.6-bookworm
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?Set POSTGRES_SUPERUSER_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-tayyar-local-postgres}
       POSTGRES_DB: postgres
       DB_NAME: ${DB_NAME:-tayyar}
       DB_MIGRATION_USERNAME: ${DB_MIGRATION_USERNAME:-tayyar_migrator}
-      DB_MIGRATION_PASSWORD: ${DB_MIGRATION_PASSWORD:?Set DB_MIGRATION_PASSWORD in .env}
+      DB_MIGRATION_PASSWORD: ${DB_MIGRATION_PASSWORD:-tayyar-local-migrator}
       DB_USERNAME: ${DB_USERNAME:-tayyar_app}
-      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      DB_PASSWORD: ${DB_PASSWORD:-tayyar-local-runtime}
     volumes:
       # PostgreSQL 18 stores versioned data below this mount point.
       - tayyar-postgres-data:/var/lib/postgresql
@@ -22,7 +24,6 @@ services:
       timeout: 3s
       retries: 12
       start_period: 5s
-    restart: unless-stopped
 
   migrate:
     image: tayyar-backend:local
@@ -34,9 +35,9 @@ services:
       SPRING_PROFILES_ACTIVE: container-local,migrate,container-migrate
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-tayyar}
       DB_USERNAME: ${DB_USERNAME:-tayyar_app}
-      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      DB_PASSWORD: ${DB_PASSWORD:-tayyar-local-runtime}
       DB_MIGRATION_USERNAME: ${DB_MIGRATION_USERNAME:-tayyar_migrator}
-      DB_MIGRATION_PASSWORD: ${DB_MIGRATION_PASSWORD:?Set DB_MIGRATION_PASSWORD in .env}
+      DB_MIGRATION_PASSWORD: ${DB_MIGRATION_PASSWORD:-tayyar-local-migrator}
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,7 +61,7 @@ services:
       SERVER_PORT: ${CONTAINER_PORT:-8080}
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-tayyar}
       DB_USERNAME: ${DB_USERNAME:-tayyar_app}
-      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      DB_PASSWORD: ${DB_PASSWORD:-tayyar-local-runtime}
       ALLOWED_FRONTEND_ORIGINS: ${ALLOWED_FRONTEND_ORIGINS:-}
       SHUTDOWN_TIMEOUT: ${SHUTDOWN_TIMEOUT:-30s}
     ports:
@@ -88,7 +89,6 @@ services:
     cap_drop:
       - ALL
     stop_grace_period: 35s
-    restart: unless-stopped
 
 volumes:
   tayyar-postgres-data:

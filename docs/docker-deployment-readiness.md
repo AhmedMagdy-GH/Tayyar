@@ -43,13 +43,17 @@ temporary content, and documentation. Explicit Dockerfile copies further limit c
 
 ## Local Compose workflow
 
-Create an ignored developer-local file, then replace the three empty password values with
-different, non-production values:
+From a clean clone, the complete startup command is:
 
 ```powershell
-Copy-Item .env.example .env
-notepad .env
+docker compose up --build
 ```
+
+No `.env`, host Java, Maven, or PostgreSQL installation is required. Compose uses explicit,
+deliberately weak local-development passwords by default. They preserve separate superuser,
+migration, and runtime identities, but are not production secrets and must never be reused
+outside this local stack. To override local values, copy `.env.example` to the ignored `.env`
+file and edit it before startup.
 
 The stack contains:
 
@@ -67,11 +71,11 @@ Linux capabilities, enable `no-new-privileges`, use a read-only root filesystem,
 only a bounded `/tmp` tmpfs. PostgreSQL is the only persistent filesystem state.
 
 ```powershell
-# Build (also happens automatically during up)
-docker compose build --pull backend migrate
-
 # Start database, execute migrations, then start backend
-docker compose up -d
+docker compose up --build
+
+# Optional: run detached instead
+docker compose up --build -d
 
 # Inspect status and the completed job
 docker compose ps --all
@@ -94,11 +98,27 @@ permanently deletes the named local PostgreSQL volume and recreates roles/databa
 on the next start. Use it only when a fresh local schema is intended.
 
 ```powershell
-docker compose down --volumes
+docker compose down -v
 ```
 
 Initialization scripts run only for an empty volume. Changing role names or passwords in
 `.env` does not rewrite an existing volume; reset intentionally or administer it explicitly.
+
+### Troubleshooting local startup
+
+- **Docker is unavailable:** start Docker Desktop or the Docker Engine, then run
+  `docker compose up --build` again. `docker info` should succeed first.
+- **Port 8080 is already in use:** in PowerShell run
+  `$env:BACKEND_HOST_PORT=8081; docker compose up --build`, then use port 8081 in URLs.
+- **Migration fails:** run `docker compose ps --all` and
+  `docker compose logs migrate postgres`. The backend intentionally remains stopped; the
+  migration job is not retried forever or bypassed.
+- **Readiness does not become healthy:** inspect `docker compose logs backend migrate postgres`
+  and probe `http://localhost:8080/actuator/health/readiness`. Readiness can fail while
+  PostgreSQL is unavailable even though liveness remains healthy.
+- **A retained volume no longer matches local credentials or schema expectations:** inspect
+  the logs first. If—and only if—its data is disposable, run `docker compose down -v`
+  and start again. This permanently deletes the local PostgreSQL data.
 
 ## Credentials, bootstrap, and migrations
 
@@ -108,7 +128,8 @@ migration owner gets schema creation. The runtime role gets schema usage plus de
 and sequence privileges on objects subsequently created by the migration owner. It owns
 neither database, schema, Flyway history, nor tables and cannot create/drop schema objects.
 
-Passwords are injected through local `.env`. The superuser password reaches only PostgreSQL.
+Passwords use explicit local-only Compose defaults or optional ignored `.env` overrides. The
+superuser password reaches only PostgreSQL.
 Migration credentials reach only PostgreSQL initialization and the finite migration job.
 The backend receives only runtime credentials. Production must inject secrets using the
 future platform's secret manager/environment facility; `.env` is local-only.
