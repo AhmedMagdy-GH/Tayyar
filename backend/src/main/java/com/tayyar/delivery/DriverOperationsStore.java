@@ -98,7 +98,7 @@ public class DriverOperationsStore {
                         "SELECT dp.user_id,dp.state,dp.version FROM driver_profiles dp JOIN users u"
                             + " ON u.id=dp.user_id JOIN user_roles ur ON ur.user_id=dp.user_id AND"
                             + " ur.role_name='DRIVER' WHERE dp.user_id=? AND u.status='ACTIVE' FOR"
-                            + " UPDATE OF dp",
+                            + " UPDATE OF dp,u",
                         (row, number) ->
                                 new DriverLock(
                                         row.getObject("user_id", UUID.class),

@@ -209,7 +209,7 @@ LEFT JOIN restaurants r ON r.application_id=a.id
                                 instant(r, "changed_at")));
     }
 
-    public Page<RestaurantView> restaurants(UUID owner, Window window) {
+    public Page<RestaurantView> restaurants(UUID owner, RestaurantStatus status, Window window) {
         String from =
                 " FROM restaurants r"
                         + (owner == null
@@ -218,6 +218,10 @@ LEFT JOIN restaurants r ON r.application_id=a.id
                                       + " m.user_id=? AND m.membership_type='OWNER'");
         List<Object> params = new ArrayList<>();
         if (owner != null) params.add(owner);
+        if (status != null) {
+            from += owner == null ? " WHERE r.status=?" : " AND r.status=?";
+            params.add(status.name());
+        }
         Long count = jdbc.queryForObject("SELECT count(*)" + from, Long.class, params.toArray());
         params.add(window.size());
         params.add(window.offset());

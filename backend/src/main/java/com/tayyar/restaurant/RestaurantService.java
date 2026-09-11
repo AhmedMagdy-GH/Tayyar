@@ -34,7 +34,12 @@ public class RestaurantService {
     }
 
     public Page<RestaurantView> list(SessionPrincipal actor, Window window) {
-        return journal.restaurants(actor.roles().contains(Role.ADMIN) ? null : actor.id(), window);
+        return journal.restaurants(actor.roles().contains(Role.ADMIN) ? null : actor.id(), null, window);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<RestaurantView> list(SessionPrincipal actor, RestaurantStatus status, Window window) {
+        return journal.restaurants(null, status, window);
     }
 
     @Transactional

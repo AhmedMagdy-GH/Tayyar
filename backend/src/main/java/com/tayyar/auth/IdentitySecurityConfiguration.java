@@ -121,6 +121,8 @@ public class IdentitySecurityConfiguration {
                                         .authenticated()
                                         .requestMatchers("/api/v1/notifications/**")
                                         .authenticated()
+                                        .requestMatchers("/api/v1/admin/**")
+                                        .hasRole("ADMIN")
                                         .requestMatchers(
                                                 "/api/v1/admin/restaurant-applications/**",
                                                 "/api/v1/admin/restaurants/**")

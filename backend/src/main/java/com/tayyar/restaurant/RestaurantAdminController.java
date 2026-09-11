@@ -69,9 +69,10 @@ public class RestaurantAdminController {
     @GetMapping("/restaurants")
     public Page<RestaurantView> restaurants(
             @AuthenticationPrincipal SessionPrincipal actor,
+            @RequestParam(required = false) RestaurantStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return restaurants.list(actor, new Window(page, size));
+        return restaurants.list(actor, status, new Window(page, size));
     }
 
     @PutMapping("/restaurants/{id}/status")
