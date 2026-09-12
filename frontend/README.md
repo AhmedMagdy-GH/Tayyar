@@ -1,4 +1,4 @@
-# Tayyar frontend — Phase 1
+# Tayyar frontend — Phase 2
 
 Responsive customer discovery and restaurant menu experience built from the approved Stitch direction. The Stitch presentation shell was intentionally excluded; the implementation is a native React application.
 
@@ -22,16 +22,22 @@ The preview mode is intentionally URL-gated and displays a persistent notice so 
 - Responsive homepage at 390, 768, 1024, and 1440px
 - Responsive restaurant details and paginated-menu presentation
 - Typed Discovery API integration for restaurants, branches, menus, and delivery zones
+- Customer registration, login, current-session recovery, and real server logout using HttpOnly cookie sessions
 - Cookie-session fetches (`credentials: include`) and reusable CSRF mutation preparation through `/api/v1/auth/csrf`
-- Shared loading, error, empty, navigation, search, restaurant card, artwork, quantity, and cart-preview states
+- Server-owned cart reads and versioned mutations, explicit cross-branch replacement, availability warnings, and price reconfirmation
+- Structured saved-address create, edit, delete, default selection, and manual delivery-zone assignment
+- Address-aware restaurant and branch discovery using only backend-supported `addressId` and `zoneId` filters
+- Shared loading, safe error, empty, navigation, search, restaurant card, artwork, and quantity states
 - Keyboard focus styling, semantic landmarks, labelled controls, and reduced-motion support
+
+Customer routes are `/login`, `/register`, `/cart`, and `/addresses`. Cart and address screens require a real customer session and preserve a safe intended route through login.
 
 ## Backend gaps represented as presentation fallbacks
 
 Discovery DTOs do not currently provide imagery, cuisine tags, ratings, review counts, or promotional badges. Live API cards therefore use local fallback artwork and omit unsupported metadata. Preview mode supplies clearly labelled demo values for visual validation.
 
-The basket in Phase 1 is a local interaction preview. Authenticated Cart and Favorite endpoints were audited, but writes are not wired until the authentication UI exists; this avoids presenting unsaved state as server-owned data. No JWTs or browser storage are used.
+Demo mode remains visual-only for unsupported discovery metadata. It does not fake authentication, cart ownership, saved addresses, or checkout. No JWTs or browser storage are used for authentication or cart state.
 
 ## Deliberately deferred
 
-Checkout, orders, authentication forms, profile, account pages, and operational dashboards are outside this phase.
+Checkout, order history, favorites, notifications, the full profile experience, and operational dashboards remain outside this phase.

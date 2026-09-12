@@ -69,9 +69,85 @@ export type ApiErrorBody = {
   message?: string
   timestamp?: string
   path?: string
+  correlationId?: string
+  fieldErrors?: Array<{ field: string; message: string }>
 }
 
 export type CsrfResponse = {
   headerName: string
   token: string
+}
+
+export type CurrentUser = {
+  id: string
+  fullName: string
+  email: string
+  phone: string | null
+  status: 'ACTIVE' | 'SUSPENDED' | string
+  emailVerified: boolean
+  roles: string[]
+}
+
+export type RegistrationInput = {
+  fullName: string
+  email: string
+  phone: string | null
+  password: string
+}
+
+export type LoginInput = { email: string; password: string }
+
+export type CartLine = {
+  id: string
+  menuItemId: string
+  name: string
+  quantity: number
+  acknowledgedUnitPrice: number
+  currentUnitPrice: number
+  priceChanged: boolean
+  currentlyAvailable: boolean
+  lineSubtotal: number
+  version: number
+}
+
+export type Cart = {
+  id: string
+  branch: {
+    id: string
+    restaurantId: string
+    name: string
+    restaurantName: string
+    state: string
+    openNow: boolean
+  }
+  items: CartLine[]
+  merchandiseSubtotal: number
+  currency: string
+  version: number
+}
+
+export type AddressProfile = {
+  label: string
+  street: string
+  building: string
+  floor: string | null
+  apartment: string | null
+  landmark: string | null
+  instructions: string | null
+  city: string
+  region: string | null
+  postalCode: string | null
+  countryCode: string
+  latitude: number | null
+  longitude: number | null
+}
+
+export type Address = {
+  id: string
+  profile: AddressProfile
+  deliveryZoneId: string | null
+  isDefault: boolean
+  version: number
+  createdAt: string
+  updatedAt: string
 }

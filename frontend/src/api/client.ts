@@ -15,6 +15,10 @@ export class ApiError extends Error {
 
 let csrf: CsrfResponse | null = null
 
+export function clearCsrfToken() {
+  csrf = null
+}
+
 async function csrfHeaders(): Promise<Record<string, string>> {
   if (!csrf) {
     csrf = await request<CsrfResponse>('/auth/csrf')
@@ -46,13 +50,16 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   return (await response.json()) as T
 }
 
-export async function mutate<T>(path: string, init: RequestInit): Promise<T> {
+export async function mutate<T>(path: string, init: RequestInit, retried = false): Promise<T> {
   const headers = new Headers(init.headers)
   Object.entries(await csrfHeaders()).forEach(([name, value]) => headers.set(name, value))
   try {
     return await request<T>(path, { ...init, headers })
   } catch (error) {
-    if (error instanceof ApiError && error.status === 403) csrf = null
+    if (error instanceof ApiError && error.status === 403 && error.body?.code === 'CSRF_INVALID' && !retried) {
+      csrf = null
+      return mutate<T>(path, init, true)
+    }
     throw error
   }
 }

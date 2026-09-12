@@ -7,7 +7,9 @@ import { FoodArt } from '../components/FoodArt'
 import { MobileNav } from '../components/MobileNav'
 import { RestaurantCard } from '../components/RestaurantCard'
 import { discoveryApi } from '../api/discovery'
+import { queryKeys } from '../api/queryKeys'
 import { demoPresentation, demoRestaurants, demoZones } from '../demo/data'
+import { useAddresses, useCurrentUser } from '../hooks/useCustomer'
 
 const categories = [
   ['Burgers', '🍔'], ['Pizza', '🍕'], ['Chicken', '🍗'], ['Shawarma', '🥙'],
@@ -19,15 +21,18 @@ export function HomePage() {
   const [search, setSearch] = useState('')
   const [zoneId, setZoneId] = useState('')
   const deferredSearch = useDeferredValue(search.trim())
+  const session = useCurrentUser()
+  const addresses = useAddresses(Boolean(session.data))
+  const defaultAddressId = addresses.data?.items.find((address) => address.isDefault)?.id
 
   const zonesQuery = useQuery({
-    queryKey: ['delivery-zones'],
+    queryKey: queryKeys.zones,
     queryFn: discoveryApi.zones,
     enabled: !demo,
   })
   const restaurantsQuery = useQuery({
-    queryKey: ['restaurants', deferredSearch, zoneId],
-    queryFn: () => discoveryApi.restaurants({ query: deferredSearch, zoneId: zoneId || undefined }),
+    queryKey: ['restaurants', deferredSearch, zoneId, defaultAddressId],
+    queryFn: () => discoveryApi.restaurants({ query: deferredSearch, addressId: defaultAddressId, zoneId: defaultAddressId ? undefined : (zoneId || undefined) }),
     enabled: !demo,
   })
 

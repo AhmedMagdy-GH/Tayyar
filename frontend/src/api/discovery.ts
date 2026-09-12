@@ -12,6 +12,7 @@ function params(values: Record<string, string | number | boolean | undefined>) {
 export type RestaurantFilters = {
   query?: string
   zoneId?: string
+  addressId?: string
   page?: number
   size?: number
   openNow?: boolean
@@ -24,9 +25,9 @@ export const discoveryApi = {
   restaurant(id: string) {
     return request<Restaurant>(`/discovery/restaurants/${id}`)
   },
-  branches(restaurantId: string, zoneId?: string) {
+  branches(restaurantId: string, location: { zoneId?: string; addressId?: string } = {}) {
     return request<Page<Branch>>(
-      `/discovery/restaurants/${restaurantId}/branches?${params({ page: 0, size: 100, zoneId })}`,
+      `/discovery/restaurants/${restaurantId}/branches?${params({ page: 0, size: 100, ...location })}`,
     )
   },
   menu(restaurantId: string, branchId: string) {
