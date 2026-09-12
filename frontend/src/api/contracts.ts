@@ -88,6 +88,13 @@ export type CurrentUser = {
   roles: string[]
 }
 
+export type Favorite = {
+  restaurantId: string
+  name: string
+  description: string
+  favoritedAt: string
+}
+
 export type RegistrationInput = {
   fullName: string
   email: string

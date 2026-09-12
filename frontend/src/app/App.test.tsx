@@ -28,6 +28,13 @@ it('requires authentication for customer order history', async () => {
   expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument()
 })
 
+it.each(['/favorites', '/account'])('requires authentication for %s', async (path) => {
+  const client = testClient()
+  client.setQueryData(queryKeys.currentUser, null)
+  renderApp(<App />, client, [path])
+  expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument()
+})
+
 it('navigates a successful checkout to confirmation and keeps the current user', async () => {
   vi.spyOn(checkoutApi, 'place').mockResolvedValue(summary)
   vi.spyOn(orderApi, 'details').mockReturnValue(new Promise(() => {}))

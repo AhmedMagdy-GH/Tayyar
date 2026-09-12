@@ -1,12 +1,14 @@
-import { Clock3, Heart, Star } from 'lucide-react'
+import { Clock3, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { Restaurant } from '../api/contracts'
 import type { RestaurantPresentation } from '../demo/data'
 import { FoodArt } from './FoodArt'
+import { FavoriteButton } from './FavoriteButton'
+import { formatMoney } from '../utils/money'
 
 function money(value: number | null, currency: string) {
   if (value === null) return null
-  return value === 0 ? 'Free delivery' : `${currency} ${value} delivery`
+  return value === 0 ? 'Free delivery' : `${formatMoney(value, currency)} delivery`
 }
 
 export function RestaurantCard({ restaurant, presentation, demo = false }: { restaurant: Restaurant; presentation?: RestaurantPresentation; demo?: boolean }) {
@@ -17,7 +19,7 @@ export function RestaurantCard({ restaurant, presentation, demo = false }: { res
         <FoodArt art={presentation?.art} label={`${restaurant.name} fallback artwork`} />
         {presentation?.badge && <span className="card-badge">{presentation.badge}</span>}
       </Link>
-      <button type="button" className="favorite-button" aria-label={`Save ${restaurant.name}; requires sign in`} aria-pressed="false" title="Sign in to save favorites"><Heart size={18} /></button>
+      <FavoriteButton restaurantId={restaurant.id} restaurantName={restaurant.name} description={restaurant.description} demo={demo} />
       <Link to={href} className="restaurant-card__body">
         <div className="restaurant-card__title-row">
           <h3>{restaurant.name}</h3>

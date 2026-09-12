@@ -25,6 +25,7 @@ describe('AppHeader session states', () => {
     const logout = vi.spyOn(authApi, 'logout').mockResolvedValue()
     renderApp(<AppHeader />, client)
     expect(screen.getByRole('link', { name: 'Cart with 2 items' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Favorites' })).toHaveAttribute('href', '/favorites')
     fireEvent.click(screen.getByRole('button', { name: 'Open account menu' }))
     fireEvent.click(screen.getAllByRole('menuitem', { name: 'Sign out' })[0])
     await waitFor(() => expect(logout).toHaveBeenCalledOnce())

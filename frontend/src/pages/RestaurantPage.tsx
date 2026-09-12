@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Check, ChevronDown, Clock3, Heart, Info, MapPin, Minus, Plus, Share2, ShoppingBag, Star } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Clock3, Info, MapPin, Minus, Plus, Share2, ShoppingBag, Star } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { cartApi, type AddCartItemInput } from '../api/cart'
@@ -12,13 +12,11 @@ import { reviewApi } from '../api/reviews'
 import { AppHeader } from '../components/AppHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FoodArt } from '../components/FoodArt'
+import { FavoriteButton } from '../components/FavoriteButton'
 import { DemoNotice, ErrorState } from '../components/States'
 import { demoBranch, demoMenu, demoPresentation, demoRestaurants } from '../demo/data'
 import { useAddresses, useCart, useCurrentUser } from '../hooks/useCustomer'
-
-function formatMoney(value: number, currency: string) {
-  return `${Math.round(value).toLocaleString()} ${currency}`
-}
+import { formatMoney } from '../utils/money'
 
 function QuantityControl({ name, quantity, available, pending, demo, onChange }: { name: string; quantity: number; available: boolean; pending: boolean; demo: boolean; onChange: (value: number) => void }) {
   if (!available) return <span className="sold-out">Sold out</span>
@@ -109,7 +107,7 @@ export function RestaurantPage() {
     <AppHeader demo={demo} />
     <main>
       {demo && <div className="shell notice-wrap"><DemoNotice /></div>}
-      <section className="restaurant-hero"><div className="shell restaurant-hero__canvas"><Link className="back-link" to={demo ? '/?demo=true' : '/'}><ArrowLeft size={17} /> All restaurants</Link><FoodArt art={presentation?.art} label={`${restaurant.name} fallback hero artwork`} /><div className="restaurant-hero__actions"><button type="button" aria-label="Share restaurant"><Share2 size={18} /></button><button type="button" aria-label="Save restaurant; requires sign in"><Heart size={18} /></button></div></div></section>
+      <section className="restaurant-hero"><div className="shell restaurant-hero__canvas"><Link className="back-link" to={demo ? '/?demo=true' : '/'}><ArrowLeft size={17} /> All restaurants</Link><FoodArt art={presentation?.art} label={`${restaurant.name} fallback hero artwork`} /><div className="restaurant-hero__actions"><button type="button" aria-label="Share restaurant"><Share2 size={18} /></button><FavoriteButton className="restaurant-favorite-button" restaurantId={restaurant.id} restaurantName={restaurant.name} description={restaurant.description} demo={demo} /></div></div></section>
       <section className="restaurant-summary shell" aria-labelledby="restaurant-name"><div className="restaurant-summary__main"><div className="restaurant-summary__title"><div><span className="open-badge"><Check size={13} /> {restaurant.openNow ? 'Open now' : 'Closed'}</span><h1 id="restaurant-name">{restaurant.name}</h1><p>{presentation?.cuisine ?? restaurant.description}</p></div>{presentation?.rating && <div className="large-rating"><Star size={19} fill="currentColor" /><strong>{presentation.rating}</strong><span>{presentation.ratingCount} ratings</span></div>}</div><div className="restaurant-facts"><span><Clock3 size={18} /><strong>{branch?.etaMinMinutes && branch?.etaMaxMinutes ? `${branch.etaMinMinutes}–${branch.etaMaxMinutes} min` : restaurant.minimumEtaMinutes ? `${restaurant.minimumEtaMinutes}+ min` : 'ETA at checkout'}</strong><small>Delivery time</small></span><span><ShoppingBag size={18} /><strong>{branch?.deliveryFee === 0 ? 'Free' : branch?.deliveryFee != null ? formatMoney(branch.deliveryFee, branch.currency) : restaurant.minimumDeliveryFee != null ? formatMoney(restaurant.minimumDeliveryFee, restaurant.currency) : 'At checkout'}</strong><small>Delivery fee</small></span><span><Info size={18} /><strong>{branch?.minimumOrder != null ? formatMoney(branch.minimumOrder, branch.currency) : restaurant.minimumOrder != null ? formatMoney(restaurant.minimumOrder, restaurant.currency) : 'No minimum'}</strong><small>Minimum order</small></span></div></div><label className="branch-selector"><MapPin size={19} /><span><small>Ordering from</small><select value={branchId} onChange={(event) => setChosenBranchId(event.target.value)} disabled={branches.length < 2}>{branches.length ? branches.map((entry) => <option key={entry.id} value={entry.id}>{entry.name} · {entry.city}</option>) : <option>No branch available</option>}</select></span><ChevronDown size={17} /></label></section>
       {menu && menu.categories.items.length > 0 && <nav className="menu-tabs" aria-label="Menu categories"><div className="shell">{menu.categories.items.map((category, index) => <a key={category.id} href={`#category-${category.id}`} className={index === 0 ? 'is-active' : ''}>{category.name}</a>)}</div></nav>}
       <div className="shell menu-layout"><div className="menu-content">
