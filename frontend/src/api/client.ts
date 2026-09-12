@@ -7,6 +7,7 @@ export class ApiError extends Error {
     message: string,
     public readonly status: number,
     public readonly body?: ApiErrorBody,
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -43,7 +44,9 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     } catch {
       body = undefined
     }
-    throw new ApiError(body?.message ?? `Request failed with status ${response.status}`, response.status, body)
+    const retryAfter = response.headers.get('Retry-After')
+    const retryAfterSeconds = retryAfter && /^\d+$/.test(retryAfter) ? Number(retryAfter) : undefined
+    throw new ApiError(body?.message ?? `Request failed with status ${response.status}`, response.status, body, retryAfterSeconds)
   }
 
   if (response.status === 204) return undefined as T

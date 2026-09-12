@@ -5,6 +5,8 @@ import { LoginPage, RegisterPage } from '../pages/AuthPage'
 import { CartPage } from '../pages/CartPage'
 import { AddressesPage } from '../pages/AddressesPage'
 import { ProtectedRoute } from '../components/ProtectedRoute'
+import { CheckoutPage } from '../pages/CheckoutPage'
+import { OrderConfirmationPage } from '../pages/OrderConfirmationPage'
 
 export function App() {
   return (
@@ -15,6 +17,8 @@ export function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
       <Route path="/addresses" element={<ProtectedRoute><AddressesPage /></ProtectedRoute>} />
+      <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+      <Route path="/orders/:orderId/confirmation" element={<ProtectedRoute><OrderConfirmationPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

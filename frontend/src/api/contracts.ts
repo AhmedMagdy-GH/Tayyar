@@ -151,3 +151,64 @@ export type Address = {
   createdAt: string
   updatedAt: string
 }
+
+export type CheckoutInput = {
+  cartId: string
+  cartVersion: number
+  savedAddressId: string
+  paymentMethod: 'CASH'
+  promotionCode?: string
+}
+
+export type CheckoutSummary = {
+  orderId: string
+  orderStatus: string
+  paymentMethod: string
+  paymentStatus: string
+  merchandiseSubtotal: number
+  deliveryFee: number
+  discountTotal: number
+  finalTotal: number
+  currency: string
+  createdAt: string
+}
+
+export type OrderDetails = {
+  order: {
+    id: string
+    status: string
+    restaurant: { id: string; name: string }
+    branch: { id: string; name: string }
+    merchandiseSubtotal: number
+    deliveryFee: number
+    discountTotal: number
+    finalTotal: number
+    currency: string
+    version: number
+    createdAt: string
+  }
+  items: Array<{
+    menuItemId: string
+    name: string
+    unitPrice: number
+    quantity: number
+    lineSubtotal: number
+  }>
+  deliveryAddress: {
+    label: string
+    street: string
+    building: string
+    floor: string | null
+    apartment: string | null
+    landmark: string | null
+    instructions: string | null
+    city: string
+    region: string | null
+    postalCode: string | null
+    countryCode: string
+    deliveryZoneName: string | null
+    managedCityName: string | null
+  }
+  payment: { method: string; status: string } | null
+  history: Array<unknown>
+}

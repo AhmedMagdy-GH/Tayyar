@@ -10,7 +10,7 @@ export type AddCartItemInput = {
 }
 
 export const cartApi = {
-  get() { return request<Cart | undefined>('/cart') },
+  async get() { return (await request<Cart | undefined>('/cart')) ?? null },
   add(input: AddCartItemInput) { return mutate<Cart>('/cart/items', { method: 'POST', body: JSON.stringify(input) }) },
   replace(input: AddCartItemInput & { cartId: string; cartVersion: number }) { return mutate<Cart>('/cart/replace', { method: 'POST', body: JSON.stringify(input) }) },
   update(lineId: string, input: { quantity: number; cartId: string; cartVersion: number; itemVersion: number }) {
