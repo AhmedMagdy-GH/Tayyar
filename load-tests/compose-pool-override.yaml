@@ -1,0 +1,4 @@
+services:
+  backend:
+    environment:
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${LOAD_TEST_POOL_SIZE:-10}

@@ -49,25 +49,48 @@ public class DiscoveryQuery {
     }
 
     private String candidates(Filter f, UUID zone, UUID restaurant) {
+        String deliverySelect =
+                zone == null
+                        ? "false AS serviceable,NULL::numeric AS delivery_fee,"
+                                + "NULL::numeric AS minimum_order,NULL::integer AS eta_min_minutes,"
+                                + "NULL::integer AS eta_max_minutes"
+                        : "(%s)='SERVICEABLE' AS serviceable,d.delivery_fee,d.minimum_order,"
+                                .formatted(DeliveryReadSql.REASON)
+                                + "d.eta_min_minutes,d.eta_max_minutes";
+        String deliveryJoin =
+                zone == null
+                        ? ""
+                        : "JOIN delivery_zones z ON z.id=:zone JOIN cities c ON c.id=z.city_id "
+                                + "LEFT JOIN branch_delivery_zones d ON d.branch_id=b.id "
+                                + "AND d.delivery_zone_id=z.id ";
         String sql =
                 """
                 WITH candidates AS (
                 SELECT r.id AS restaurant_id,r.name AS restaurant_name,r.description,
                        b.id,b.name,b.address_line1,b.city,b.timezone,b.paused,
-                       %s AS schedule_open, (%s)='SERVICEABLE' AS serviceable,
-                       d.delivery_fee,d.minimum_order,d.eta_min_minutes,d.eta_max_minutes
+                       %s AS schedule_open, %s
                 FROM restaurants r JOIN branches b ON b.restaurant_id=r.id
-                LEFT JOIN delivery_zones z ON z.id=:zone
-                LEFT JOIN cities c ON c.id=z.city_id
-                LEFT JOIN branch_delivery_zones d ON d.branch_id=b.id AND d.delivery_zone_id=z.id
+                %s
                 %s
                 WHERE r.status='ACTIVE' AND b.status='ACTIVE'
                 """
                         .formatted(
                                 BranchReadSql.OPEN,
-                                DeliveryReadSql.REASON,
+                                deliverySelect,
+                                deliveryJoin,
                                 BranchReadSql.HOURS_JOIN);
         if (restaurant != null) sql += " AND r.id=:restaurant";
+        if (!f.query().isEmpty() && f.categoryId() == null && !f.availableOnly()) {
+            sql +=
+                    """
+ AND (r.name ILIKE :query ESCAPE '!' OR EXISTS (
+ SELECT 1 FROM restaurant_menus m
+ JOIN menu_categories c ON c.menu_id=m.id AND c.active
+ LEFT JOIN menu_items i ON i.category_id=c.id AND i.active
+ WHERE m.restaurant_id=r.id AND m.active
+ AND (c.name ILIKE :query ESCAPE '!' OR i.name ILIKE :query ESCAPE '!')))
+""";
+        } else
         if (!f.query().isEmpty() || f.categoryId() != null || f.availableOnly()) {
             sql += " AND (";
             if (f.categoryId() == null && !f.availableOnly())
@@ -113,7 +136,6 @@ public class DiscoveryQuery {
     min(minimum_order) AS minimum_order,min(eta_min_minutes) AS eta_min_minutes
     FROM eligible GROUP BY restaurant_id,restaurant_name,description)
 """;
-        long count = jdbc.queryForObject(from + " SELECT count(*) FROM cards", p, Long.class);
         String sort =
                 switch (f.sort()) {
                     case NAME -> "lower(restaurant_name)";
@@ -121,15 +143,15 @@ public class DiscoveryQuery {
                     case MINIMUM_ORDER -> "minimum_order";
                     case ETA -> "eta_min_minutes";
                 };
-        var rows =
+        var counted =
                 jdbc.query(
                         from
-                                + " SELECT * FROM cards ORDER BY "
+                                + " SELECT *,count(*) OVER() AS total_count FROM cards ORDER BY "
                                 + sort
                                 + " ASC NULLS LAST,restaurant_id LIMIT :limit OFFSET :offset",
                         p,
                         (r, n) ->
-                                new Restaurant(
+                                new Counted<>(new Restaurant(
                                         r.getObject("restaurant_id", UUID.class),
                                         r.getString("restaurant_name"),
                                         r.getString("description"),
@@ -139,8 +161,11 @@ public class DiscoveryQuery {
                                         r.getBigDecimal("delivery_fee"),
                                         r.getBigDecimal("minimum_order"),
                                         r.getObject("eta_min_minutes", Integer.class),
-                                        "EGP"));
-        return new Page<>(rows, w.page(), w.size(), count);
+                                        "EGP"), r.getLong("total_count")));
+        long count = counted.isEmpty() && w.offset() > 0
+                ? jdbc.queryForObject(from + " SELECT count(*) FROM cards", p, Long.class)
+                : counted.isEmpty() ? 0 : counted.getFirst().total();
+        return new Page<>(counted.stream().map(Counted::value).toList(), w.page(), w.size(), count);
     }
 
     public void requireRestaurant(UUID id) {
@@ -158,7 +183,6 @@ AND EXISTS(SELECT 1 FROM branches b WHERE b.restaurant_id=r.id AND b.status='ACT
         requireRestaurant(restaurant);
         var p = parameters(f, zone, w, now).addValue("restaurant", restaurant);
         String from = candidates(f, zone, restaurant);
-        long total = jdbc.queryForObject(from + "SELECT count(*) FROM eligible", p, Long.class);
         String sort =
                 switch (f.sort()) {
                     case NAME -> "lower(name)";
@@ -166,15 +190,15 @@ AND EXISTS(SELECT 1 FROM branches b WHERE b.restaurant_id=r.id AND b.status='ACT
                     case MINIMUM_ORDER -> "minimum_order";
                     case ETA -> "eta_min_minutes";
                 };
-        var rows =
+        var counted =
                 jdbc.query(
                         from
-                                + "SELECT * FROM eligible ORDER BY "
+                                + "SELECT *,count(*) OVER() AS total_count FROM eligible ORDER BY "
                                 + sort
                                 + " ASC NULLS LAST,id LIMIT :limit OFFSET :offset",
                         p,
                         (r, n) ->
-                                new Branch(
+                                new Counted<>(new Branch(
                                         r.getObject("id", UUID.class),
                                         r.getString("name"),
                                         r.getString("address_line1"),
@@ -189,13 +213,18 @@ AND EXISTS(SELECT 1 FROM branches b WHERE b.restaurant_id=r.id AND b.status='ACT
                                         r.getBigDecimal("minimum_order"),
                                         r.getObject("eta_min_minutes", Integer.class),
                                         r.getObject("eta_max_minutes", Integer.class),
-                                        "EGP"));
-        return new Page<>(rows, w.page(), w.size(), total);
+                                        "EGP"), r.getLong("total_count")));
+        long total = counted.isEmpty() && w.offset() > 0
+                ? jdbc.queryForObject(from + "SELECT count(*) FROM eligible", p, Long.class)
+                : counted.isEmpty() ? 0 : counted.getFirst().total();
+        return new Page<>(counted.stream().map(Counted::value).toList(), w.page(), w.size(), total);
     }
 
     record Header(UUID id, String name, String currency) {}
 
     record CategoryRow(UUID id, String name, String description) {}
+
+    record Counted<T>(T value, long total) {}
 
     public Menu menu(
             UUID restaurant, UUID branch, Window categories, Window items, boolean availableOnly) {
@@ -223,21 +252,23 @@ AND r.status='ACTIVE' AND b.status='ACTIVE' AND m.active
         if (headers.isEmpty()) throw DiscoveryException.missing();
         var header = headers.getFirst();
         p.addValue("menu", header.id());
-        long total =
-                jdbc.queryForObject(
-                        "SELECT count(*) FROM menu_categories WHERE menu_id=:menu AND active",
-                        p,
-                        Long.class);
-        var cats =
+        var countedCats =
                 jdbc.query(
-                        "SELECT id,name,description FROM menu_categories WHERE menu_id=:menu AND"
+                        "SELECT id,name,description,count(*) OVER() AS total_count FROM menu_categories WHERE menu_id=:menu AND"
                             + " active ORDER BY position,id LIMIT :limit OFFSET :offset",
                         p,
                         (r, n) ->
-                                new CategoryRow(
+                                new Counted<>(new CategoryRow(
                                         r.getObject("id", UUID.class),
                                         r.getString("name"),
-                                        r.getString("description")));
+                                        r.getString("description")), r.getLong("total_count")));
+        var cats = countedCats.stream().map(Counted::value).toList();
+        long total = countedCats.isEmpty() && categories.offset() > 0
+                ? jdbc.queryForObject(
+                        "SELECT count(*) FROM menu_categories WHERE menu_id=:menu AND active",
+                        p,
+                        Long.class)
+                : countedCats.isEmpty() ? 0 : countedCats.getFirst().total();
         Map<UUID, List<Item>> contents = new HashMap<>();
         Map<UUID, Long> totals = new HashMap<>();
         if (!cats.isEmpty()) {
@@ -310,20 +341,22 @@ ORDER BY totals.category_id,r.rn
         String from =
                 " FROM delivery_zones z JOIN cities c ON c.id=z.city_id WHERE z.active AND c.active"
                         + (city == null ? "" : " AND c.id=:city");
-        long total = jdbc.queryForObject("SELECT count(*)" + from, p, Long.class);
-        var rows =
+        var counted =
                 jdbc.query(
-                        "SELECT z.id,z.name,z.city_id,c.name AS city_name"
+                        "SELECT z.id,z.name,z.city_id,c.name AS city_name,count(*) OVER() AS total_count"
                                 + from
                                 + " ORDER BY lower(c.name),lower(z.name),z.id LIMIT :limit OFFSET"
                                 + " :offset",
                         p,
                         (r, n) ->
-                                new Zone(
+                                new Counted<>(new Zone(
                                         r.getObject("id", UUID.class),
                                         r.getString("name"),
                                         r.getObject("city_id", UUID.class),
-                                        r.getString("city_name")));
-        return new Page<>(rows, w.page(), w.size(), total);
+                                        r.getString("city_name")), r.getLong("total_count")));
+        long total = counted.isEmpty() && w.offset() > 0
+                ? jdbc.queryForObject("SELECT count(*)" + from, p, Long.class)
+                : counted.isEmpty() ? 0 : counted.getFirst().total();
+        return new Page<>(counted.stream().map(Counted::value).toList(), w.page(), w.size(), total);
     }
 }

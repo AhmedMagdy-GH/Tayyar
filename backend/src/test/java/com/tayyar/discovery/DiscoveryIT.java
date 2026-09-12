@@ -333,12 +333,16 @@ VALUES (?,?,?,'Public street','Cairo','EG','Africa/Cairo','RESTAURANT_DELIVERY',
         assertThat(first.get("items").get(0).get("id"))
                 .isNotEqualTo(next.get("items").get(0).get("id"));
         assertThat(body(get(branches() + "?size=1"), 200)).isEqualTo(first);
-        assertThat(body(get(branches() + "?size=100&page=10000"), 200).get("items").size())
-                .isZero();
+        var emptyBranchPage = body(get(branches() + "?size=100&page=10000"), 200);
+        assertThat(emptyBranchPage.get("items").size()).isZero();
+        assertThat(emptyBranchPage.get("total").asLong()).isEqualTo(2);
         body(get(branches() + "?size=101"), 400);
         var listing = body(get(list() + "?size=1"), 200);
         assertThat(listing.get("items").size()).isEqualTo(1);
         assertThat(body(get(list() + "?size=1"), 200)).isEqualTo(listing);
+        var emptyListingPage = body(get(list() + "?size=100&page=10000"), 200);
+        assertThat(emptyListingPage.get("items").size()).isZero();
+        assertThat(emptyListingPage.get("total").asLong()).isEqualTo(1);
     }
 
     @Test
@@ -606,18 +610,18 @@ VALUES (?,?,?,'Public street','Cairo','EG','Africa/Cairo','RESTAURANT_DELIVERY',
                                 + jdbc.queryForObject("SHOW server_version", String.class)
                                 + "; fixture-scale plans, not a load benchmark\n");
         query.restaurants(filter(null), null, new Window(0, 20), Instant.now(), null);
-        assertQueries(counted, 2, plans, "listing");
+        assertQueries(counted, 1, plans, "listing");
         query.restaurants(
                 new Filter("chicken", null, null, null, null, null, null, false, Sort.NAME),
                 null,
                 new Window(0, 20),
                 Instant.now(),
                 null);
-        assertQueries(counted, 2, plans, "search");
+        assertQueries(counted, 1, plans, "search");
         query.restaurants(filter(zone), zone, new Window(0, 20), Instant.now(), null);
-        assertQueries(counted, 2, plans, "zone listing");
+        assertQueries(counted, 1, plans, "zone listing");
         query.menu(restaurant, branch, new Window(0, 20), new Window(0, 20), false);
-        assertQueries(counted, 4, plans, "menu");
+        assertQueries(counted, 3, plans, "menu");
         Files.writeString(Path.of("target/discovery-explain.txt"), plans);
     }
 

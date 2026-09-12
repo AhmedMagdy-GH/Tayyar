@@ -11,6 +11,7 @@ const expected409 = new Counter('expected_409');
 const expected429 = new Counter('expected_429');
 const checkoutSuccess = new Counter('checkout_success');
 const checkoutLatency = new Trend('checkout_latency', true);
+const discoveryLatency = Array.from({ length: 6 }, (_, i) => new Trend(`discovery_${i}_latency`, true));
 
 function parsedStages(fallback) {
   const raw = __ENV.STAGES || fallback;
@@ -122,7 +123,7 @@ function discovery() {
       `${API}/discovery/restaurants/${id('00000000',2000+n)}/branches/${id('00000000',3000+b)}/menu?page=0&size=5&itemPage=0&itemSize=20&availableOnly=true`,
     ];
     const responses=http.batch(urls.map((url,i)=>['GET',url,null,{tags:{operation:`discovery_${i}`}}]));
-    responses.forEach(r=>classify(r,[200]));
+    responses.forEach((r,i)=>{ discoveryLatency[i].add(r.timings.duration); classify(r,[200]); });
   });
 }
 function authenticated(data) {

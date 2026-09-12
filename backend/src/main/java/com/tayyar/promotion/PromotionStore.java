@@ -130,4 +130,5 @@ INSERT INTO promotion_redemptions(id,promotion_id,customer_id,order_id,redeemed_
     public record Locked(UUID id, UUID restaurant, String code, String name, DiscountType type,
             BigDecimal percentage, BigDecimal fixed, BigDecimal minimum, BigDecimal maximum,
             Instant starts, Instant ends, boolean active, Long totalLimit, Long customerLimit) {}
+
 }
