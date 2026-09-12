@@ -19,6 +19,6 @@ it('shows the real customer order detail without tracking UI', async () => {
   expect(await screen.findByText('Tayyar Grill')).toBeInTheDocument()
   expect(screen.getByText(/Kofta Bowl/)).toBeInTheDocument()
   expect(screen.getByText('190 EGP')).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /Continue browsing/ })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: /Track this order/ })).toHaveAttribute('href', '/orders/o1')
   expect(screen.queryByText(/tracking/i)).not.toBeInTheDocument()
 })

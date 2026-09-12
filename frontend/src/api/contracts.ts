@@ -176,7 +176,7 @@ export type CheckoutSummary = {
 export type OrderDetails = {
   order: {
     id: string
-    status: string
+    status: OrderStatus
     restaurant: { id: string; name: string }
     branch: { id: string; name: string }
     merchandiseSubtotal: number
@@ -210,5 +210,55 @@ export type OrderDetails = {
     managedCityName: string | null
   }
   payment: { method: string; status: string } | null
-  history: Array<unknown>
+  history: OrderHistoryEntry[]
+}
+
+export type OrderStatus = 'PENDING_PAYMENT' | 'PLACED' | 'ACCEPTED' | 'PREPARING' | 'READY_FOR_PICKUP' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'PAYMENT_FAILED' | 'REJECTED' | 'CANCELLED'
+
+export type OrderSummary = OrderDetails['order']
+
+export type OrderHistoryEntry = {
+  previousStatus: OrderStatus | null
+  newStatus: OrderStatus
+  reason: string | null
+  occurredAt: string
+}
+
+export type Notification = {
+  id: string
+  type: 'ORDER_ACCEPTED' | 'ORDER_REJECTED' | 'ORDER_PREPARING' | 'ORDER_READY_FOR_PICKUP' | 'ORDER_OUT_FOR_DELIVERY' | 'ORDER_DELIVERED' | 'DELIVERY_ASSIGNED' | 'RESTAURANT_APPLICATION_APPROVED' | 'RESTAURANT_APPLICATION_REJECTED'
+  channel: string
+  title: string
+  body: string
+  relatedEntityType: 'ORDER' | 'DELIVERY_ASSIGNMENT' | 'RESTAURANT_APPLICATION' | null
+  relatedEntityId: string | null
+  read: boolean
+  createdAt: string
+  readAt: string | null
+}
+
+export type CustomerReview = {
+  id: string
+  orderId: string
+  restaurantId: string
+  branchId: string
+  rating: number
+  comment: string | null
+  status: string
+  version: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type PublicReview = {
+  id: string
+  branchId: string
+  rating: number
+  comment: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type PublicReviewPage = Page<PublicReview> & {
+  ratingSummary: { averageRating: number | null; reviewCount: number }
 }

@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Heart, LogOut, MapPin, Menu, Search, ShoppingBag, UserRound } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Bell, Heart, LogOut, MapPin, Menu, Search, ShoppingBag, UserRound } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { addressApi } from '../api/addresses'
 import { authApi } from '../api/auth'
 import { queryKeys } from '../api/queryKeys'
+import { notificationApi } from '../api/notifications'
 import type { Zone } from '../api/contracts'
 import { useAddresses, useCart, useCurrentUser } from '../hooks/useCustomer'
 import { BrandLogo } from './BrandLogo'
@@ -24,6 +25,7 @@ export function AppHeader({ demo = false, zones = [], zoneId, onZoneChange, sear
   const authenticated = Boolean(session.data)
   const addresses = useAddresses(authenticated)
   const cart = useCart(authenticated)
+  const unread = useQuery({ queryKey: queryKeys.notificationBadge, queryFn: () => notificationApi.list({ page: 0, size: 1, read: false }), enabled: authenticated, staleTime: 60_000, retry: false })
   const defaultAddress = addresses.data?.items.find((address) => address.isDefault)
   const [menuOpen, setMenuOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -56,13 +58,14 @@ export function AppHeader({ demo = false, zones = [], zoneId, onZoneChange, sear
       <nav className="header-actions" aria-label="Account shortcuts">
         {session.isPending ? <span className="header-session-loading" role="status">Checking session…</span> : session.isError ? <button className="header-session-error" type="button" onClick={() => void session.refetch()}>Session unavailable · retry</button> : authenticated ? <>
           <button className="icon-button header-actions__secondary" type="button" aria-label="Favorites, coming in a later phase" title="Favorites coming soon"><Heart size={19} /></button>
-          <button className="header-orders" type="button" title="Orders coming in a later phase"><ShoppingBag size={18} /> Orders</button>
+          <Link className="notification-link" to="/notifications" aria-label={`Notifications${unread.data?.total ? `, ${unread.data.total} unread` : ''}`}><Bell size={18} />{Boolean(unread.data?.total) && <span>{unread.data!.total > 99 ? '99+' : unread.data!.total}</span>}</Link>
+          <Link className="header-orders" to="/orders"><ShoppingBag size={18} /> Orders</Link>
           <Link className="cart-pill" to="/cart" aria-label={`Cart with ${cartCount} items`}><ShoppingBag size={18} /> Cart{cartCount ? ` (${cartCount})` : ''}</Link>
           <div className="account-menu-wrap"><button className="avatar-button" type="button" aria-label="Open account menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}>{session.data?.fullName.slice(0, 1).toUpperCase() ?? <UserRound size={17} />}</button>{menuOpen && <div className="account-menu" role="menu"><div><strong>{session.data?.fullName}</strong><span>{session.data?.email}</span></div><Link role="menuitem" to="/addresses" onClick={() => setMenuOpen(false)}><MapPin size={16} /> Saved addresses</Link><button role="menuitem" type="button" onClick={() => logout.mutate()} disabled={logout.isPending}><LogOut size={16} /> {logout.isPending ? 'Signing out…' : 'Sign out'}</button></div>}</div>
         </> : <div className="guest-actions"><Link to="/login" state={{ from: returnPath }}>Log in</Link><Link to="/register" state={{ from: returnPath }}>Create account</Link></div>}
         <button className="icon-button mobile-menu" type="button" aria-label="Open account navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}><Menu size={21} /></button>
       </nav>
-      {menuOpen && <div className="mobile-account-menu" role="menu">{authenticated ? <><div><strong>{session.data?.fullName}</strong><span>{session.data?.email}</span></div><Link role="menuitem" to="/cart"><ShoppingBag size={16} /> Cart{cartCount ? ` (${cartCount})` : ''}</Link><Link role="menuitem" to="/addresses"><MapPin size={16} /> Saved addresses</Link><button role="menuitem" type="button" onClick={() => logout.mutate()}><LogOut size={16} /> Sign out</button></> : <><Link role="menuitem" to="/login" state={{ from: returnPath }}>Log in</Link><Link role="menuitem" to="/register" state={{ from: returnPath }}>Create account</Link></>}</div>}
+      {menuOpen && <div className="mobile-account-menu" role="menu">{authenticated ? <><div><strong>{session.data?.fullName}</strong><span>{session.data?.email}</span></div><Link role="menuitem" to="/orders"><ShoppingBag size={16} /> Orders</Link><Link role="menuitem" to="/notifications"><Bell size={16} /> Notifications{unread.data?.total ? ` (${unread.data.total})` : ''}</Link><Link role="menuitem" to="/cart"><ShoppingBag size={16} /> Cart{cartCount ? ` (${cartCount})` : ''}</Link><Link role="menuitem" to="/addresses"><MapPin size={16} /> Saved addresses</Link><button role="menuitem" type="button" onClick={() => logout.mutate()}><LogOut size={16} /> Sign out</button></> : <><Link role="menuitem" to="/login" state={{ from: returnPath }}>Log in</Link><Link role="menuitem" to="/register" state={{ from: returnPath }}>Create account</Link></>}</div>}
     </div>
     {onSearch && <div className="shell mobile-search-wrap"><label className="header-search mobile-search"><Search size={18} aria-hidden="true" /><span className="sr-only">Search restaurants</span><input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search restaurants or food" /></label></div>}
   </header>

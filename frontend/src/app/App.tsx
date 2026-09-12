@@ -7,6 +7,9 @@ import { AddressesPage } from '../pages/AddressesPage'
 import { ProtectedRoute } from '../components/ProtectedRoute'
 import { CheckoutPage } from '../pages/CheckoutPage'
 import { OrderConfirmationPage } from '../pages/OrderConfirmationPage'
+import { OrdersPage } from '../pages/OrdersPage'
+import { OrderDetailPage } from '../pages/OrderDetailPage'
+import { NotificationsPage } from '../pages/NotificationsPage'
 
 export function App() {
   return (
@@ -19,6 +22,9 @@ export function App() {
       <Route path="/addresses" element={<ProtectedRoute><AddressesPage /></ProtectedRoute>} />
       <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
       <Route path="/orders/:orderId/confirmation" element={<ProtectedRoute><OrderConfirmationPage /></ProtectedRoute>} />
+      <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+      <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

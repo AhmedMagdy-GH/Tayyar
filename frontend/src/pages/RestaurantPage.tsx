@@ -8,6 +8,7 @@ import { discoveryApi } from '../api/discovery'
 import type { Branch, Cart, Menu, MenuItem, Restaurant } from '../api/contracts'
 import { safeErrorMessage } from '../api/errors'
 import { queryKeys } from '../api/queryKeys'
+import { reviewApi } from '../api/reviews'
 import { AppHeader } from '../components/AppHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FoodArt } from '../components/FoodArt'
@@ -63,6 +64,7 @@ export function RestaurantPage() {
   const branch = branches.find((entry) => entry.id === branchId)
   const menuQuery = useQuery({ queryKey: ['restaurant-menu', restaurantId, branchId], queryFn: () => discoveryApi.menu(restaurantId, branchId), enabled: !demo && Boolean(branchId) })
   const menu: Menu | undefined = demo ? demoMenu : menuQuery.data
+  const reviewsQuery = useQuery({ queryKey: queryKeys.publicReviews(restaurantId, 0), queryFn: () => reviewApi.publicForRestaurant(restaurantId), enabled: !demo && Boolean(restaurantId), retry: false })
   const presentation = demo ? demoPresentation[restaurant?.id ?? ''] : undefined
 
   function storeCart(next: Cart | undefined) {
@@ -117,6 +119,7 @@ export function RestaurantPage() {
         {!branch && <div className="state-card"><MapPin size={28} /><h2>No branch is available</h2><p>This restaurant has no discoverable branches yet.</p></div>}
         {menu?.categories.items.map((category, categoryIndex) => <section className="menu-section" key={category.id} id={`category-${category.id}`}><div className="menu-section__heading"><span>{String(categoryIndex + 1).padStart(2, '0')}</span><div><h2>{category.name}</h2>{category.description && <p>{category.description}</p>}</div></div><div className="menu-grid">{category.items.items.map((item, itemIndex) => { const line = cart?.branch.id === branchId ? cart.items.find((entry) => entry.menuItemId === item.id) : undefined; return <MenuCard key={item.id} item={item} currency={menu.currency} index={itemIndex + categoryIndex} quantity={line?.quantity ?? 0} pending={add.isPending || update.isPending || replace.isPending} demo={demo} onChange={(value) => changeItem(item, value)} /> })}</div></section>)}
       </div><OrderPreview cart={session.data ? cart ?? undefined : undefined} currentBranchId={branchId} authenticated={Boolean(session.data)} /></div>
+      {!demo && reviewsQuery.data && <section className="shell public-reviews" aria-labelledby="reviews-heading"><header><div><span className="eyebrow">Verified orders</span><h2 id="reviews-heading">What customers say</h2></div><div className="review-summary"><Star size={18} fill="currentColor" /><strong>{reviewsQuery.data.ratingSummary.averageRating?.toFixed(1) ?? '—'}</strong><span>{reviewsQuery.data.ratingSummary.reviewCount} review{reviewsQuery.data.ratingSummary.reviewCount === 1 ? '' : 's'}</span></div></header>{reviewsQuery.data.items.length ? <div className="public-review-grid">{reviewsQuery.data.items.map((review) => <article key={review.id}><div aria-label={`${review.rating} out of 5 stars`}>{Array.from({ length: 5 }, (_, index) => <Star key={index} size={14} fill={index < review.rating ? 'currentColor' : 'none'} />)}</div><p>{review.comment || 'Rated without a written comment.'}</p><small>Verified Tayyar customer · {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(review.createdAt))}</small></article>)}</div> : <p className="public-reviews__empty">No public reviews yet.</p>}</section>}
     </main>
     {!demo && cart && cartCount > 0 && <Link className="floating-cart" to="/cart"><span><b>{cartCount}</b><span>View cart</span></span><strong>{formatMoney(cart.merchandiseSubtotal, cart.currency)}</strong></Link>}
     {replacement && cart && <ConfirmDialog title="Replace your current cart?" description={`Your cart contains items from ${cart.branch.restaurantName} · ${cart.branch.name}. Replacing it will discard those items and start a cart from this branch.`} confirmLabel="Replace cart" cancelLabel="Keep current cart" pending={replace.isPending} onCancel={() => setReplacement(null)} onConfirm={() => replace.mutate(replacement)} />}

@@ -1,6 +1,9 @@
-import { Heart, Home, Search, ShoppingBag } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Bell, Home, ShoppingBag, UserRound } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import type { ReactNode } from 'react'
 
 export function MobileNav({ demo = false }: { demo?: boolean }) {
-  return <nav className="mobile-nav" aria-label="Primary navigation"><Link to={demo ? '/?demo=true' : '/'} className="is-active"><Home size={20} /><span>Home</span></Link><a href="#popular"><Search size={20} /><span>Browse</span></a><button type="button" title="Favorites coming soon"><Heart size={20} /><span>Saved</span></button><button type="button" title="Orders coming soon"><ShoppingBag size={20} /><span>Orders</span></button></nav>
+  const { pathname } = useLocation()
+  const link = (to: string, label: string, icon: ReactNode) => <Link to={to} className={pathname === to || (to !== '/' && pathname.startsWith(to)) ? 'is-active' : ''} aria-current={pathname === to || (to !== '/' && pathname.startsWith(to)) ? 'page' : undefined}>{icon}<span>{label}</span></Link>
+  return <nav className="mobile-nav" aria-label="Primary navigation">{link(demo ? '/?demo=true' : '/', 'Home', <Home size={20} />)}{link('/orders', 'Orders', <ShoppingBag size={20} />)}{link('/notifications', 'Alerts', <Bell size={20} />)}{link('/addresses', 'Profile', <UserRound size={20} />)}</nav>
 }
