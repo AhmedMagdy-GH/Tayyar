@@ -88,6 +88,62 @@ export type CurrentUser = {
   roles: string[]
 }
 
+export type DriverState = 'OFFLINE' | 'AVAILABLE' | 'BUSY'
+
+export type DriverProfile = {
+  driverId: string
+  state: DriverState
+  version: number
+  updatedAt: string
+}
+
+export type DriverOrder = {
+  orderId: string
+  status: Extract<OrderStatus, 'READY_FOR_PICKUP' | 'OUT_FOR_DELIVERY'>
+  orderVersion: number
+  assignmentId: string
+  assignmentVersion: number
+  pickup: {
+    restaurantId: string
+    restaurantName: string
+    branchId: string
+    branchName: string
+    addressLine1: string
+    city: string
+    phone: string | null
+  }
+  destination: {
+    label: string
+    street: string
+    building: string
+    floor: string | null
+    apartment: string | null
+    landmark: string | null
+    instructions: string | null
+    city: string
+    region: string | null
+    postalCode: string | null
+    countryCode: string
+  }
+  paymentMethod: 'CASH' | 'CARD' | null
+  cashAmountToCollect: number | null
+  currency: string | null
+  assignedAt: string
+}
+
+export type DriverCompletion = {
+  orderId: string
+  orderStatus: 'DELIVERED'
+  orderVersion: number
+  assignmentId: string
+  assignmentStatus: 'COMPLETED'
+  assignmentVersion: number
+  driverState: 'AVAILABLE'
+  driverVersion: number
+  paymentMethod: 'CASH' | 'CARD'
+  paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | string
+}
+
 export type Favorite = {
   restaurantId: string
   name: string

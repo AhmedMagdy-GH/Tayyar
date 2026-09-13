@@ -26,6 +26,7 @@ export function LoginPage() {
   const [email, setEmail] = useState(state.email ?? '')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const driverReturn = intendedPath(state.from).startsWith('/driver')
   const login = useMutation({
     mutationFn: authApi.login,
     onSuccess: async () => {
@@ -46,7 +47,7 @@ export function LoginPage() {
       <div className="auth-panel__top"><BrandLogo /><Link to="/" className="back-inline"><ArrowLeft size={16} /> Back home</Link></div>
       <div className="auth-card">
         <span className="auth-icon"><LockKeyhole size={22} /></span>
-        <h1>Welcome back</h1><p>Sign in to manage your cart, saved addresses, and orders.</p>
+        <h1>Welcome back</h1><p>{driverReturn ? 'Sign in to continue to Driver operations.' : 'Sign in to manage your cart, saved addresses, and orders.'}</p>
         {state.registered && <div className="success-banner" role="status">Account created. Sign in to continue.</div>}
         {login.isError && <div className="form-error" role="alert">{safeErrorMessage(login.error, 'Sign in failed. Please try again.')}</div>}
         <form onSubmit={submit} noValidate>

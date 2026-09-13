@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { HomePage } from '../pages/HomePage'
 import { RestaurantPage } from '../pages/RestaurantPage'
@@ -12,14 +13,14 @@ import { OrderDetailPage } from '../pages/OrderDetailPage'
 import { NotificationsPage } from '../pages/NotificationsPage'
 import { FavoritesPage } from '../pages/FavoritesPage'
 import { AccountPage } from '../pages/AccountPage'
-import { OwnerRoute, RestaurantRoute } from '../restaurant/RestaurantRoute'
-import { RestaurantOverviewPage, RestaurantSettingsPage } from '../restaurant/OverviewSettingsPages'
-import { BranchesPage, HoursPage } from '../restaurant/BranchesPages'
-import { MenuManagementPage } from '../restaurant/MenuPage'
-import { DeliveryManagementPage } from '../restaurant/DeliveryPage'
-import { StaffManagementPage } from '../restaurant/StaffPage'
-import { RestaurantOrderDetailPage, RestaurantOrdersPage } from '../restaurant/OrdersPages'
 import { RestaurantApplicationPage } from '../restaurant/RestaurantApplicationPage'
+
+const DriverApp = lazy(() => import('../driver/DriverApp').then((module) => ({ default: module.DriverApp })))
+const RestaurantApp = lazy(() => import('../restaurant/RestaurantApp').then((module) => ({ default: module.RestaurantApp })))
+
+function RouteLoading({ label }: { label: string }) {
+  return <div className="session-loading" role="status" aria-live="polite"><span className="loader" /> {label}</div>
+}
 
 export function App() {
   return (
@@ -38,20 +39,8 @@ export function App() {
       <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
       <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
       <Route path="/restaurant-application" element={<ProtectedRoute><RestaurantApplicationPage /></ProtectedRoute>} />
-      <Route path="/restaurant" element={<RestaurantRoute />}>
-        <Route index element={<Navigate to="overview" replace />} />
-        <Route path="overview" element={<RestaurantOverviewPage />} />
-        <Route path="orders" element={<RestaurantOrdersPage />} />
-        <Route path="orders/:orderId" element={<RestaurantOrderDetailPage />} />
-        <Route element={<OwnerRoute />}>
-          <Route path="branches" element={<BranchesPage />} />
-          <Route path="hours" element={<HoursPage />} />
-          <Route path="menu" element={<MenuManagementPage />} />
-          <Route path="delivery" element={<DeliveryManagementPage />} />
-          <Route path="staff" element={<StaffManagementPage />} />
-          <Route path="settings" element={<RestaurantSettingsPage />} />
-        </Route>
-      </Route>
+      <Route path="/restaurant/*" element={<Suspense fallback={<RouteLoading label="Loading restaurant operations…" />}><RestaurantApp /></Suspense>} />
+      <Route path="/driver/*" element={<Suspense fallback={<RouteLoading label="Loading Driver operations…" />}><DriverApp /></Suspense>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

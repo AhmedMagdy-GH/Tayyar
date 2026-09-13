@@ -25,4 +25,7 @@ export const queryKeys = {
   restaurantOrders: (restaurantId: string, branchId: string | null, status: string | null, page: number) => ['restaurant-operations', restaurantId, 'orders', { branchId, status, page }] as const,
   restaurantOrder: (restaurantId: string, orderId: string) => ['restaurant-operations', restaurantId, 'orders', orderId] as const,
   restaurantApplications: ['customer', 'restaurant-applications'] as const,
+  driverProfile: ['driver-operations', 'profile'] as const,
+  driverOrders: ['driver-operations', 'orders', 'active'] as const,
+  driverOrder: (orderId: string) => ['driver-operations', 'orders', orderId] as const,
 }
