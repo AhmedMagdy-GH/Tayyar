@@ -47,7 +47,7 @@ public final class AdminDtos {
     public record AssignmentSummary(UUID assignmentId, UUID driverId, String status, Instant assignedAt) {}
     public record OrderSummary(
             UUID id, UUID customerId, UUID restaurantId, String restaurantName, UUID branchId,
-            String branchName, OrderStatus status, BigDecimal finalTotal, String currency,
+            String branchName, OrderStatus status, long version, BigDecimal finalTotal, String currency,
             PaymentSummary payment, AssignmentSummary assignment, Instant createdAt) {}
     public record PurchasedItem(String name, BigDecimal unitPrice, int quantity, BigDecimal lineSubtotal) {}
     public record AddressSnapshot(

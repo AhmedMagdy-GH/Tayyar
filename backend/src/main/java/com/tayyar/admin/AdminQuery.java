@@ -140,7 +140,7 @@ class AdminQuery {
 
     private static String orderSelect() {
         return "SELECT o.id,o.customer_id,o.restaurant_id,r.name restaurant_name,o.branch_id,b.name branch_name," +
-                "o.status,o.final_total,o.currency,o.created_at,p.method payment_method,p.status payment_status,p.amount payment_amount," +
+                "o.status,o.version,o.final_total,o.currency,o.created_at,p.method payment_method,p.status payment_status,p.amount payment_amount," +
                 "p.currency payment_currency,da.id assignment_id,da.driver_id,da.status assignment_status,da.assigned_at " +
                 "FROM orders o JOIN restaurants r ON r.id=o.restaurant_id JOIN branches b ON b.id=o.branch_id " +
                 "LEFT JOIN LATERAL (SELECT method,status,amount,currency FROM payments WHERE order_id=o.id ORDER BY created_at DESC,id DESC LIMIT 1) p ON true " +
@@ -155,7 +155,7 @@ class AdminQuery {
                 r.getTimestamp("assigned_at").toInstant());
         return new OrderSummary(r.getObject("id",UUID.class),r.getObject("customer_id",UUID.class),
                 r.getObject("restaurant_id",UUID.class),r.getString("restaurant_name"),r.getObject("branch_id",UUID.class),
-                r.getString("branch_name"),OrderStatus.valueOf(r.getString("status")),r.getBigDecimal("final_total"),
+                r.getString("branch_name"),OrderStatus.valueOf(r.getString("status")),r.getLong("version"),r.getBigDecimal("final_total"),
                 r.getString("currency"),payment,assignment,r.getTimestamp("created_at").toInstant());
     }
 }

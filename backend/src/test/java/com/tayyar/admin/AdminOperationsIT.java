@@ -160,17 +160,60 @@ class AdminOperationsIT extends PostgresIntegrationTest {
         assertThat(body(adminBrowser.send("GET", "/admin/restaurants?status=ACTIVE", null), 200).get("total").asLong()).isGreaterThan(0);
 
         JsonNode orderView = body(adminBrowser.send("GET", "/admin/orders/" + order, null), 200);
+        assertThat(orderView.at("/order/version").asLong()).isZero();
         assertThat(orderView.at("/order/payment/status").asText()).isEqualTo("PENDING");
         assertThat(orderView.at("/order/assignment/driverId").asText()).isEqualTo(driver.toString());
         assertThat(orderView.at("/deliveryAddress/street").asText()).isEqualTo("Customer Street");
         assertThat(orderView.toString()).doesNotContain("providerPaymentReference", "password", "session");
-        assertThat(body(adminBrowser.send("GET", "/admin/orders?status=READY_FOR_PICKUP&restaurantId=" + restaurant, null), 200)
-                .get("total").asLong()).isEqualTo(1);
+        JsonNode orderPage = body(adminBrowser.send("GET", "/admin/orders?status=READY_FOR_PICKUP&restaurantId=" + restaurant, null), 200);
+        assertThat(orderPage.get("total").asLong()).isEqualTo(1);
+        assertThat(orderPage.at("/items/0/version").asLong()).isZero();
 
         JsonNode drivers = body(adminBrowser.send("GET", "/admin/drivers?state=BUSY", null), 200);
         assertThat(drivers.get("items").toString()).contains(order.toString(), driver.toString());
         body(customerBrowser.send("GET", "/admin/orders", null), 403);
         body(customerBrowser.send("GET", "/admin/drivers", null), 403);
+    }
+
+    @Test
+    void returnedOrderVersionSupportsAssignmentAndStaleVersionsRemainRejected() throws Exception {
+        UUID availableDriver = account("DRIVER");
+        jdbc.update("INSERT INTO driver_profiles(user_id,state,created_at,updated_at) VALUES (?,'AVAILABLE',now(),now())", availableDriver);
+        UUID eligibleOrder = createReadyOrder();
+
+        JsonNode page = body(adminBrowser.send("GET", "/admin/orders?customerId=" + customer, null), 200);
+        JsonNode summary = findOrder(page.get("items"), eligibleOrder);
+        long returnedVersion = summary.get("version").asLong();
+        JsonNode detail = body(adminBrowser.send("GET", "/admin/orders/" + eligibleOrder, null), 200);
+        assertThat(detail.at("/order/version").asLong()).isEqualTo(returnedVersion);
+
+        JsonNode assigned = body(adminBrowser.send("POST", "/admin/delivery-assignments",
+                Map.of("orderId", eligibleOrder, "driverId", availableDriver, "orderVersion", returnedVersion)), 200);
+        assertThat(assigned.get("orderId").asText()).isEqualTo(eligibleOrder.toString());
+        assertThat(assigned.get("driverId").asText()).isEqualTo(availableDriver.toString());
+
+        UUID staleOrder = createReadyOrder();
+        JsonNode staleDetail = body(adminBrowser.send("GET", "/admin/orders/" + staleOrder, null), 200);
+        long staleVersion = staleDetail.at("/order/version").asLong();
+        jdbc.update("UPDATE orders SET version=version+1 WHERE id=?", staleOrder);
+        JsonNode conflict = body(adminBrowser.send("POST", "/admin/delivery-assignments",
+                Map.of("orderId", staleOrder, "driverId", driver, "orderVersion", staleVersion)), 409);
+        assertThat(conflict.get("message").asText()).isEqualTo("Order changed; reload and retry");
+
+        body(customerBrowser.send("GET", "/admin/orders/" + eligibleOrder, null), 403);
+        assertThat(detail.toString()).doesNotContain("providerPaymentReference", "password", "authVersion", "session");
+    }
+
+    UUID createReadyOrder() {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO orders(id,customer_id,restaurant_id,branch_id,status,currency,merchandise_subtotal,delivery_fee,discount_total,final_total,created_at,updated_at)" +
+                " VALUES (?,?,?,?,'READY_FOR_PICKUP','EGP',100,10,0,110,now(),now())", id, customer, restaurant, branch);
+        return id;
+    }
+
+    JsonNode findOrder(JsonNode items, UUID id) {
+        for (JsonNode item : items) if (id.toString().equals(item.get("id").asText())) return item;
+        throw new AssertionError("Expected Admin Order summary for " + id);
     }
 
     @Test
