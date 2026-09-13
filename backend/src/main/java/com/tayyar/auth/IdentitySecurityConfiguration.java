@@ -122,6 +122,8 @@ public class IdentitySecurityConfiguration {
                                         .hasRole("ADMIN")
                                         .requestMatchers("/api/v1/restaurant-orders/**")
                                         .hasAnyRole("RESTAURANT_OWNER", "RESTAURANT_STAFF")
+                                        .requestMatchers("/api/v1/restaurant-operations/**")
+                                        .hasAnyRole("RESTAURANT_OWNER", "RESTAURANT_STAFF")
                                         .requestMatchers(
                                                 "/api/v1/admin/drivers/**",
                                                 "/api/v1/admin/delivery-assignments/**")
