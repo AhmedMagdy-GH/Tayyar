@@ -17,6 +17,7 @@ import { RestaurantApplicationPage } from '../restaurant/RestaurantApplicationPa
 
 const DriverApp = lazy(() => import('../driver/DriverApp').then((module) => ({ default: module.DriverApp })))
 const RestaurantApp = lazy(() => import('../restaurant/RestaurantApp').then((module) => ({ default: module.RestaurantApp })))
+const AdminApp = lazy(() => import('../admin/AdminApp').then((module) => ({ default: module.AdminApp })))
 
 function RouteLoading({ label }: { label: string }) {
   return <div className="session-loading" role="status" aria-live="polite"><span className="loader" /> {label}</div>
@@ -41,6 +42,7 @@ export function App() {
       <Route path="/restaurant-application" element={<ProtectedRoute><RestaurantApplicationPage /></ProtectedRoute>} />
       <Route path="/restaurant/*" element={<Suspense fallback={<RouteLoading label="Loading restaurant operations…" />}><RestaurantApp /></Suspense>} />
       <Route path="/driver/*" element={<Suspense fallback={<RouteLoading label="Loading Driver operations…" />}><DriverApp /></Suspense>} />
+      <Route path="/admin/*" element={<Suspense fallback={<RouteLoading label="Loading Admin operations…" />}><AdminApp /></Suspense>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

@@ -1,0 +1,11 @@
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { adminApi } from '../api/admin'
+import { queryKeys } from '../api/queryKeys'
+import { Empty, Loading, Message, PageHeader, Pager, Status, conflictMessage, formatDateTime } from './shared'
+
+export function AdminAuditPage() {
+  const [draft, setDraft] = useState({ action: '', targetType: '', targetId: '', actorId: '' }); const [filters, setFilters] = useState({ ...draft, page: 0 })
+  const query = useQuery({ queryKey: queryKeys.adminAudit(filters), queryFn: () => adminApi.audit(filters), retry: false })
+  return <><PageHeader title="Audit log" description="Immutable account-state actions with bounded, server-side filtering." /><form className="admin-filters" onSubmit={(e) => { e.preventDefault(); setFilters({ ...draft, page: 0 }) }}><label>Action<select value={draft.action} onChange={(e) => setDraft({ ...draft, action: e.target.value })}><option value="">Any action</option><option>ACCOUNT_SUSPENDED</option><option>ACCOUNT_REACTIVATED</option></select></label><label>Target type<select value={draft.targetType} onChange={(e) => setDraft({ ...draft, targetType: e.target.value })}><option value="">Any target</option><option>USER</option></select></label><label>Target ID<input value={draft.targetId} onChange={(e) => setDraft({ ...draft, targetId: e.target.value.trim() })} /></label><label>Actor ID<input value={draft.actorId} onChange={(e) => setDraft({ ...draft, actorId: e.target.value.trim() })} /></label><button>Filter audit</button></form>{query.isPending ? <Loading /> : query.isError ? <Message>{conflictMessage(query.error, 'Audit records could not be loaded.')}</Message> : <><div className="admin-timeline admin-audit">{query.data.items.map((record) => <article key={record.id}><Status value={record.actionType} /><strong>{record.beforeState} → {record.afterState}</strong><p>{record.reason}</p><dl><div><dt>Occurred</dt><dd>{formatDateTime(record.occurredAt)}</dd></div><div><dt>Actor</dt><dd>{record.actorId}</dd></div><div><dt>Target</dt><dd>{record.targetEntityType} · {record.targetEntityId}</dd></div></dl></article>)}</div>{!query.data.items.length && <Empty>No audit records matched.</Empty>}<Pager page={query.data.page} size={query.data.size} total={query.data.total} onPage={(page) => setFilters({ ...filters, page })} /></>}</>
+}
