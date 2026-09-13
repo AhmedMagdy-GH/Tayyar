@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bell, Heart, LogOut, Mail, MapPin, Phone, ReceiptText, ShieldCheck, UserRound } from 'lucide-react'
+import { Bell, Heart, LogOut, Mail, MapPin, Phone, ReceiptText, ShieldCheck, Store, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi } from '../api/auth'
@@ -14,6 +14,7 @@ const links = [
   { to: '/addresses', label: 'Saved addresses', detail: 'Manage the delivery addresses already supported by Tayyar.', icon: MapPin },
   { to: '/favorites', label: 'Favorites', detail: 'Return to restaurants you have saved.', icon: Heart },
   { to: '/notifications', label: 'Notifications', detail: 'Read order and account updates.', icon: Bell },
+  { to: '/restaurant-application', label: 'Restaurant partner application', detail: 'Apply for restaurant Owner access.', icon: Store },
 ]
 
 export function AccountPage() {

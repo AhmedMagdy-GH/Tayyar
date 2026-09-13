@@ -4,8 +4,8 @@ export function LoadingCards() {
   return <div className="restaurant-grid" aria-label="Loading restaurants">{Array.from({ length: 4 }, (_, index) => <div className="skeleton-card" key={index}><span /><i /><i /></div>)}</div>
 }
 
-export function ErrorState({ title = 'We couldn’t load this right now', onRetry }: { title?: string; onRetry?: () => void }) {
-  return <div className="state-card" role="alert"><AlertCircle size={30} /><h2>{title}</h2><p>Check that the Tayyar API is running, then try again.</p>{onRetry && <button className="primary-button" type="button" onClick={onRetry}><RefreshCw size={17} /> Try again</button>}</div>
+export function ErrorState({ title = 'We couldn’t load this right now', message = 'Check that the Tayyar API is running, then try again.', onRetry }: { title?: string; message?: string; onRetry?: () => void }) {
+  return <div className="state-card" role="alert"><AlertCircle size={30} /><h2>{title}</h2><p>{message}</p>{onRetry && <button className="primary-button" type="button" onClick={onRetry}><RefreshCw size={17} /> Try again</button>}</div>
 }
 
 export function EmptyState({ search }: { search?: string }) {

@@ -269,3 +269,105 @@ export type PublicReview = {
 export type PublicReviewPage = Page<PublicReview> & {
   ratingSummary: { averageRating: number | null; reviewCount: number }
 }
+
+export type RestaurantRole = 'OWNER' | 'STAFF'
+
+export type RestaurantBranchContext = {
+  branchId: string
+  branchName: string
+  branchStatus: string
+  operationalState: string
+}
+
+export type RestaurantOperationsContext = {
+  restaurantId: string
+  restaurantName: string
+  restaurantStatus: string
+  role: RestaurantRole
+  branches: RestaurantBranchContext[]
+}
+
+export type RestaurantView = {
+  id: string
+  name: string
+  description: string
+  status: string
+  version: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type BranchProfile = {
+  name: string
+  addressLine1: string
+  addressLine2: string | null
+  city: string
+  region: string | null
+  postalCode: string | null
+  countryCode: string
+  phone: string | null
+  latitude: string | null
+  longitude: string | null
+  timezone: string
+  deliveryModel: 'RESTAURANT_DELIVERY' | 'PLATFORM_DELIVERY'
+}
+
+export type ManagedBranch = {
+  id: string
+  restaurantId: string
+  profile: BranchProfile
+  status: string
+  paused: boolean
+  version: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type WeeklyHours = { weekday: number; opensAt: string; closesAt: string }
+export type SpecialHours = { date: string; opensAt: string | null; closesAt: string | null }
+export type BranchSchedule = { weekly: WeeklyHours[]; special: SpecialHours[]; version: number }
+
+export type ManagedMenu = {
+  id: string
+  restaurantId: string
+  name: string
+  active: boolean
+  currency: string
+  version: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type ManagedCategory = { id: string; name: string; description: string | null; active: boolean; position: number }
+export type ManagedItem = { id: string; categoryId: string; name: string; description: string | null; basePrice: string; active: boolean; available: boolean; position: number }
+export type EffectiveItem = ManagedItem & { priceOverride: string | null; availabilityOverride: boolean | null; effectivePrice: string; effectiveAvailable: boolean; currency: string }
+export type VersionedPage<T> = Page<T> & { version: number }
+export type Snapshot<T> = { data: T; version: number }
+
+export type DeliveryRuleInput = { deliveryFee: string; minimumOrder: string; etaMinMinutes: number; etaMaxMinutes: number; enabled: boolean }
+export type DeliveryRule = { id: string; branchId: string; deliveryZoneId: string; currency: string; rule: DeliveryRuleInput; version: number; createdAt: string; updatedAt: string }
+export type Geography = { id: string; cityId: string | null; name: string; active: boolean; version: number; createdAt: string; updatedAt: string }
+
+export type RestaurantStaff = {
+  userId: string
+  fullName: string
+  email: string
+  createdAt: string
+  branches: Array<{ branchId: string; branchName: string; branchStatus: string }>
+}
+
+export type RestaurantOrderSummary = OrderSummary
+export type RestaurantOrderDetails = OrderDetails
+
+export type RestaurantApplication = {
+  id: string
+  applicantId: string
+  status: string
+  revision: number
+  version: number
+  name: string
+  description: string
+  restaurantId: string | null
+  createdAt: string
+  updatedAt: string
+}
