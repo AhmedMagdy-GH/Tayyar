@@ -8,6 +8,7 @@ import { driverOperationsApi } from '../api/driverOperations'
 import { safeErrorMessage } from '../api/errors'
 import { queryKeys } from '../api/queryKeys'
 import { authApi } from '../api/auth'
+import { endSession } from '../api/sessionCache'
 import { BrandLogo } from '../components/BrandLogo'
 import { ErrorState } from '../components/States'
 import { useCurrentUser } from '../hooks/useCustomer'
@@ -45,8 +46,7 @@ function DriverShell({ name, children }: { name: string; children: ReactNode }) 
   const logout = useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
-      client.setQueryData(queryKeys.currentUser, null)
-      client.removeQueries({ queryKey: ['driver-operations'] })
+      endSession(client)
       navigate('/login', { replace: true })
     },
   })

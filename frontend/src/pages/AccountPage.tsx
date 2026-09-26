@@ -3,8 +3,8 @@ import { Bell, Heart, LogOut, Mail, MapPin, Phone, ReceiptText, ShieldCheck, Sto
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi } from '../api/auth'
+import { endSession } from '../api/sessionCache'
 import { safeErrorMessage } from '../api/errors'
-import { queryKeys } from '../api/queryKeys'
 import { AppHeader } from '../components/AppHeader'
 import { MobileNav } from '../components/MobileNav'
 import { useCurrentUser } from '../hooks/useCustomer'
@@ -25,8 +25,7 @@ export function AccountPage() {
   const logout = useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
-      client.setQueryData(queryKeys.currentUser, null)
-      client.removeQueries({ queryKey: ['customer'] })
+      endSession(client)
       navigate('/', { replace: true })
     },
     onError: (error) => setMessage(safeErrorMessage(error, 'Sign out could not be completed.')),

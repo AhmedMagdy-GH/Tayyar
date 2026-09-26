@@ -4,6 +4,7 @@ import { Bell, Heart, LogOut, MapPin, Menu, Search, ShoppingBag, UserRound } fro
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { addressApi } from '../api/addresses'
 import { authApi } from '../api/auth'
+import { endSession } from '../api/sessionCache'
 import { queryKeys } from '../api/queryKeys'
 import { notificationApi } from '../api/notifications'
 import type { Zone } from '../api/contracts'
@@ -39,8 +40,7 @@ export function AppHeader({ demo = false, zones = [], zoneId, onZoneChange, sear
   const logout = useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
-      queryClient.setQueryData(queryKeys.currentUser, null)
-      queryClient.removeQueries({ queryKey: ['customer'] })
+      endSession(queryClient)
       setMenuOpen(false)
       navigate('/', { replace: true })
     },

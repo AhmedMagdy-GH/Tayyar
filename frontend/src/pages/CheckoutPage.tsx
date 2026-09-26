@@ -4,6 +4,7 @@ import { AlertCircle, ArrowLeft, Banknote, CheckCircle2, CreditCard, MapPin, Ref
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { checkoutApi } from '../api/checkout'
+import { endSession } from '../api/sessionCache'
 import { cartApi } from '../api/cart'
 import type { CheckoutInput } from '../api/contracts'
 import { queryKeys } from '../api/queryKeys'
@@ -82,7 +83,7 @@ export function CheckoutPage() {
       if (!result.uncertain) attemptRef.current = null
       if (result.refresh) await cartQuery.refetch()
       if (result.sessionExpired) {
-        queryClient.setQueryData(queryKeys.currentUser, undefined)
+        endSession(queryClient)
         navigate('/login', { replace: true, state: { from: `${location.pathname}${location.search}` } })
       }
     },

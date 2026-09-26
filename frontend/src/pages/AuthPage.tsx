@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail, UserRound } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { authApi } from '../api/auth'
+import { endSession } from '../api/sessionCache'
 import { fieldErrors, safeErrorMessage } from '../api/errors'
 import { queryKeys } from '../api/queryKeys'
 import { BrandLogo } from '../components/BrandLogo'
@@ -30,6 +31,7 @@ export function LoginPage() {
   const login = useMutation({
     mutationFn: authApi.login,
     onSuccess: async () => {
+      endSession(queryClient)
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser })
       navigate(intendedPath(state.from), { replace: true })
     },

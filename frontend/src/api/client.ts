@@ -15,6 +15,16 @@ export class ApiError extends Error {
 }
 
 let csrf: CsrfResponse | null = null
+let sessionGeneration = 0
+
+export function invalidateSessionRequests() {
+  sessionGeneration += 1
+  clearCsrfToken()
+}
+
+function requireCurrentSession(generation: number) {
+  if (generation !== sessionGeneration) throw new Error('The session changed. Please try again.')
+}
 
 export function clearCsrfToken() {
   csrf = null
@@ -28,6 +38,7 @@ async function csrfHeaders(): Promise<Record<string, string>> {
 }
 
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const generation = sessionGeneration
   const headers = new Headers(init.headers)
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
 
@@ -36,6 +47,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     headers,
     credentials: 'include',
   })
+  requireCurrentSession(generation)
 
   if (!response.ok) {
     let body: ApiErrorBody | undefined
@@ -44,18 +56,23 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     } catch {
       body = undefined
     }
+    requireCurrentSession(generation)
     const retryAfter = response.headers.get('Retry-After')
     const retryAfterSeconds = retryAfter && /^\d+$/.test(retryAfter) ? Number(retryAfter) : undefined
     throw new ApiError(body?.message ?? `Request failed with status ${response.status}`, response.status, body, retryAfterSeconds)
   }
 
   if (response.status === 204) return undefined as T
-  return (await response.json()) as T
+  const body = (await response.json()) as T
+  requireCurrentSession(generation)
+  return body
 }
 
 export async function mutate<T>(path: string, init: RequestInit, retried = false): Promise<T> {
+  const generation = sessionGeneration
   const headers = new Headers(init.headers)
   Object.entries(await csrfHeaders()).forEach(([name, value]) => headers.set(name, value))
+  requireCurrentSession(generation)
   try {
     return await request<T>(path, { ...init, headers })
   } catch (error) {

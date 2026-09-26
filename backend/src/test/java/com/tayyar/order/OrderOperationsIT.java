@@ -133,6 +133,29 @@ class OrderOperationsIT extends PostgresIntegrationTest {
         staffBrowser = login(staff);
     }
 
+    @Test
+    void ownerRoleElsewhereDoesNotElevateStaffMembership() throws Exception {
+        UUID mixed = account("RESTAURANT_OWNER", "RESTAURANT_STAFF");
+        UUID owned = restaurant(mixed, "Mixed user's owned kitchen");
+        UUID ownedBranch = branch(owned, "Owned branch");
+        jdbc.update("INSERT INTO restaurant_memberships VALUES (?,?,'STAFF',now())", restaurant, mixed);
+        jdbc.update("INSERT INTO branch_staff_assignments VALUES (?,?,?,?,now())", branch, restaurant, mixed, owner);
+        var assigned = create(customer, restaurant, branch, OrderStatus.PLACED);
+        var unassigned = create(customer, restaurant, secondBranch, OrderStatus.PLACED);
+        var own = create(customer, owned, ownedBranch, OrderStatus.PLACED);
+        Browser browser = login(mixed);
+
+        body(browser.send("GET", "/restaurant-orders/" + unassigned.order().id(), null), 404);
+        body(browser.send("POST", path(unassigned.order().id(), "accept"), version(0)), 404);
+        body(browser.send("GET", "/restaurant-orders?restaurantId=" + restaurant + "&branchId=" + secondBranch, null), 404);
+        var queue = body(browser.send("GET", "/restaurant-orders?restaurantId=" + restaurant, null), 200);
+        assertThat(queue.toString()).contains(assigned.order().id().toString()).doesNotContain(unassigned.order().id().toString());
+        body(browser.send("GET", "/restaurant-orders/" + assigned.order().id(), null), 200);
+        body(browser.send("POST", path(assigned.order().id(), "accept"), version(0)), 200);
+        body(browser.send("POST", path(own.order().id(), "accept"), version(0)), 200);
+        assertThat(orders.details(unassigned.order().id()).order().status()).isEqualTo(OrderStatus.PLACED);
+    }
+
     UUID account(String... roles) {
         UUID id = UUID.randomUUID();
         jdbc.update(

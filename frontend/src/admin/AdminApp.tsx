@@ -3,7 +3,7 @@ import { ClipboardCheck, ClipboardList, LayoutDashboard, LogOut, ShieldCheck, St
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { NavLink, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { authApi } from '../api/auth'
-import { queryKeys } from '../api/queryKeys'
+import { endSession } from '../api/sessionCache'
 import { BrandLogo } from '../components/BrandLogo'
 import { ErrorState } from '../components/States'
 import { useCurrentUser } from '../hooks/useCustomer'
@@ -28,7 +28,7 @@ function AdminGuard() {
 
 function AdminShell({ name, children }: { name: string; children: ReactNode }) {
   const client = useQueryClient(); const navigate = useNavigate()
-  const logout = useMutation({ mutationFn: authApi.logout, onSuccess: () => { client.setQueryData(queryKeys.currentUser, null); client.removeQueries({ queryKey: ['admin'] }); navigate('/login', { replace: true }) } })
+  const logout = useMutation({ mutationFn: authApi.logout, onSuccess: () => { endSession(client); navigate('/login', { replace: true }) } })
   return <div className="admin-layout"><aside className="admin-sidebar"><BrandLogo /><div className="admin-identity"><span>Administrator</span><strong>{name}</strong></div><nav aria-label="Admin operations">{links.map(([label, to, Icon]) => <NavLink key={to} to={to} end={to === '/admin'}><Icon aria-hidden="true" />{label}</NavLink>)}</nav><button className="admin-signout" onClick={() => logout.mutate()} disabled={logout.isPending}><LogOut aria-hidden="true" />Sign out</button></aside><main className="admin-main">{children}</main></div>
 }
 

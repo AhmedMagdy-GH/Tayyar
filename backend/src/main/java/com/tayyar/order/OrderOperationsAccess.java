@@ -72,7 +72,7 @@ public class OrderOperationsAccess {
         String suffix = lock ? " FOR KEY SHARE" : "";
         return !jdbc.query(
                         "SELECT user_id FROM restaurant_memberships WHERE restaurant_id=? AND"
-                                + " user_id=?"
+                                + " user_id=? AND membership_type='OWNER'"
                                 + suffix,
                         (row, number) -> row.getObject(1, UUID.class),
                         restaurant,

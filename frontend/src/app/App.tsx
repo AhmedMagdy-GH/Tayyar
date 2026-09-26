@@ -14,6 +14,7 @@ import { NotificationsPage } from '../pages/NotificationsPage'
 import { FavoritesPage } from '../pages/FavoritesPage'
 import { AccountPage } from '../pages/AccountPage'
 import { RestaurantApplicationPage } from '../restaurant/RestaurantApplicationPage'
+import { SessionBoundary } from './SessionBoundary'
 
 const DriverApp = lazy(() => import('../driver/DriverApp').then((module) => ({ default: module.DriverApp })))
 const RestaurantApp = lazy(() => import('../restaurant/RestaurantApp').then((module) => ({ default: module.RestaurantApp })))
@@ -25,7 +26,7 @@ function RouteLoading({ label }: { label: string }) {
 
 export function App() {
   return (
-    <Routes>
+    <SessionBoundary><Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/restaurants/:restaurantId" element={<RestaurantPage />} />
       <Route path="/login" element={<LoginPage />} />
@@ -44,6 +45,6 @@ export function App() {
       <Route path="/driver/*" element={<Suspense fallback={<RouteLoading label="Loading Driver operations…" />}><DriverApp /></Suspense>} />
       <Route path="/admin/*" element={<Suspense fallback={<RouteLoading label="Loading Admin operations…" />}><AdminApp /></Suspense>} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    </Routes></SessionBoundary>
   )
 }
