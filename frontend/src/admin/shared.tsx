@@ -20,9 +20,10 @@ export function Pager({ page, size, total, onPage }: { page: number; size: numbe
 
 export function ReasonDialog({ title, description, confirmLabel, pending, required = true, onCancel, onConfirm }: { title: string; description: string; confirmLabel: string; pending: boolean; required?: boolean; onCancel: () => void; onConfirm: (reason: string) => void }) {
   const first = useRef<HTMLTextAreaElement>(null)
+  const trigger = useRef<HTMLElement | null>(null)
   const schema = z.object({ reason: required ? z.string().trim().min(1, 'Enter a reason.').max(1000, 'Reason must be 1,000 characters or fewer.') : z.string().trim().max(1000, 'Reason must be 1,000 characters or fewer.') })
   const { register, handleSubmit, formState: { errors } } = useForm<{ reason: string }>({ resolver: zodResolver(schema), defaultValues: { reason: '' } })
-  useEffect(() => { first.current?.focus() }, [])
+  useEffect(() => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; first.current?.focus(); return () => trigger.current?.focus() }, [])
   const field = register('reason')
   return <div className="dialog-backdrop" role="presentation"><form className="admin-dialog" role="alertdialog" aria-modal="true" aria-labelledby="admin-dialog-title" onKeyDown={(event) => handleDialogKeyboard(event, onCancel, pending)} onSubmit={handleSubmit((value) => onConfirm(value.reason.trim()))}>
     <h2 id="admin-dialog-title">{title}</h2><p>{description}</p><label>Reason{required ? '' : ' (optional)'}<textarea {...field} ref={(node) => { field.ref(node); first.current = node }} aria-invalid={Boolean(errors.reason)} aria-describedby={errors.reason ? 'reason-error' : undefined} maxLength={1000} /></label>{errors.reason && <span id="reason-error" className="field-error">{errors.reason.message}</span>}

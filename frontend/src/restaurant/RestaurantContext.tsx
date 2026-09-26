@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, Fragment, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { restaurantOperationsApi } from '../api/restaurantOperations'
 import { queryKeys } from '../api/queryKeys'
@@ -26,7 +26,7 @@ export function RestaurantContextProvider({ contexts, children }: { contexts: Re
   }, [selected])
 
   const value = useMemo(() => ({ contexts, selected, selectRestaurant: setSelectedId }), [contexts, selected])
-  return <Context.Provider value={value}>{children}</Context.Provider>
+  return <Context.Provider value={value}><Fragment key={selected.restaurantId}>{children}</Fragment></Context.Provider>
 }
 
 export function useRestaurantContext() {

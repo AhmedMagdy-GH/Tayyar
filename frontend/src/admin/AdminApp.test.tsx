@@ -81,6 +81,30 @@ it('shows a stale assignment conflict, refetches scoped state, and never retries
   const assign = vi.spyOn(adminApi, 'assignDriver').mockRejectedValue(new ApiError('Order version is stale', 409)); renderApp(<App />, client(), ['/admin/drivers']); await screen.findByRole('option', { name: /Tayyar Grill/ }); fireEvent.change(screen.getByLabelText('Order'), { target: { value: order.id } }); await screen.findByText('Platform delivery confirmed.'); fireEvent.change(screen.getByLabelText('Available Driver'), { target: { value: driver.driverId } }); fireEvent.click(screen.getByRole('button', { name: 'Assign Driver' })); expect(await screen.findByText('Order version is stale')).toBeInTheDocument(); expect(assign).toHaveBeenCalledTimes(1); expect(adminApi.orders).toHaveBeenCalled()
 })
 
+it('pages assignment choices beyond the initial server page and excludes assigned Orders', async () => {
+  const laterOrder = { ...order, id: '00000000-0000-4000-8000-000000000099', version: 11 }
+  const assignedOrder = { ...order, id: '00000000-0000-4000-8000-000000000098', assignment: { assignmentId: 'a-existing', driverId: driver.driverId, status: 'ACTIVE', assignedAt: now } }
+  vi.mocked(adminApi.orders).mockImplementation(async (filters) => filters.page === 1 ? { items: [laterOrder, assignedOrder], page: 1, size: 20, total: 21 } : { items: [order], page: 0, size: 20, total: 21 })
+  renderApp(<App />, client(), ['/admin/drivers'])
+  const next = await screen.findByRole('button', { name: 'Next eligible Orders' }); await waitFor(() => expect(next).not.toBeDisabled()); fireEvent.click(next)
+  const option = await screen.findByRole('option', { name: /v11/ })
+  expect(option).toBeInTheDocument()
+  expect(screen.queryByRole('option', { name: /00000000.*v7/ })).not.toBeInTheDocument()
+  expect(adminApi.orders).toHaveBeenCalledWith(expect.objectContaining({ page: 1, size: 20 }))
+})
+
+it('keeps mobile Admin Sign out reachable', async () => {
+  renderApp(<App />, client(), ['/admin'])
+  expect(await screen.findByRole('button', { name: 'Sign out of Admin' })).toBeInTheDocument()
+})
+
+it('restores focus to the dialog trigger after cancellation', async () => {
+  renderApp(<App />, client(), [`/admin/users/${user.id}`])
+  const trigger = await screen.findByRole('button', { name: 'Suspend account' }); trigger.focus(); fireEvent.click(trigger)
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(trigger).toHaveFocus())
+})
+
 it('renders audit fields structurally and applies server filters', async () => {
   vi.mocked(adminApi.audit).mockResolvedValue(page([{ id: 'a1', actorId: admin.id, actionType: 'ACCOUNT_SUSPENDED', targetEntityType: 'USER', targetEntityId: user.id, reason: 'Verified abuse', beforeState: 'ACTIVE', afterState: 'SUSPENDED', occurredAt: now }])); renderApp(<App />, client(), ['/admin/audit']); expect(await screen.findByText('Verified abuse')).toBeInTheDocument(); fireEvent.change(screen.getByLabelText('Action'), { target: { value: 'ACCOUNT_SUSPENDED' } }); fireEvent.click(screen.getByRole('button', { name: 'Filter audit' })); await waitFor(() => expect(adminApi.audit).toHaveBeenLastCalledWith(expect.objectContaining({ action: 'ACCOUNT_SUSPENDED' })))
 })

@@ -1,6 +1,6 @@
 import { mutate, request } from './client'
 import type {
-  BranchProfile, BranchSchedule, DeliveryRule, DeliveryRuleInput, EffectiveItem, Geography,
+  BranchProfileInput, BranchSchedule, DeliveryRule, DeliveryRuleInput, EffectiveItem, Geography,
   ManagedBranch, ManagedCategory, ManagedItem, ManagedMenu, Page, RestaurantOperationsContext,
   RestaurantOrderDetails, RestaurantOrderSummary, RestaurantStaff, RestaurantView, Snapshot,
   VersionedPage, RestaurantApplication,
@@ -18,9 +18,9 @@ export const restaurantOperationsApi = {
     mutate<RestaurantView>(`/restaurants/${restaurantId}`, { method: 'PUT', body: json(input) }),
 
   branches: (restaurantId: string) => request<Page<ManagedBranch>>(`/restaurants/${restaurantId}/branches${page}`),
-  createBranch: (restaurantId: string, profile: BranchProfile) =>
+  createBranch: (restaurantId: string, profile: BranchProfileInput) =>
     mutate<ManagedBranch>(`/restaurants/${restaurantId}/branches`, { method: 'POST', body: json(profile) }),
-  updateBranch: (restaurantId: string, branchId: string, profile: BranchProfile, version: number) =>
+  updateBranch: (restaurantId: string, branchId: string, profile: BranchProfileInput, version: number) =>
     mutate<ManagedBranch>(`/restaurants/${restaurantId}/branches/${branchId}`, { method: 'PUT', body: json({ profile, version }) }),
   updateBranchOperation: (restaurantId: string, branchId: string, status: string, paused: boolean, version: number) =>
     mutate<ManagedBranch>(`/restaurants/${restaurantId}/branches/${branchId}/operation`, { method: 'PUT', body: json({ status, paused, version }) }),

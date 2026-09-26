@@ -353,6 +353,7 @@ export type RestaurantView = {
   updatedAt: string
 }
 
+export type DecimalJson = string | number
 export type BranchProfile = {
   name: string
   addressLine1: string
@@ -362,8 +363,8 @@ export type BranchProfile = {
   postalCode: string | null
   countryCode: string
   phone: string | null
-  latitude: string | null
-  longitude: string | null
+  latitude: DecimalJson | null
+  longitude: DecimalJson | null
   timezone: string
   deliveryModel: 'RESTAURANT_DELIVERY' | 'TAYYAR_DELIVERY'
 }
@@ -400,8 +401,9 @@ export type EffectiveItem = ManagedItem & { priceOverride: string | null; availa
 export type VersionedPage<T> = Page<T> & { version: number }
 export type Snapshot<T> = { data: T; version: number }
 
+export type BranchProfileInput = Omit<BranchProfile, 'latitude' | 'longitude'> & { latitude: string | null; longitude: string | null }
 export type DeliveryRuleInput = { deliveryFee: string; minimumOrder: string; etaMinMinutes: number; etaMaxMinutes: number; enabled: boolean }
-export type DeliveryRule = { id: string; branchId: string; deliveryZoneId: string; currency: string; rule: DeliveryRuleInput; version: number; createdAt: string; updatedAt: string }
+export type DeliveryRule = { id: string; branchId: string; deliveryZoneId: string; currency: string; rule: Omit<DeliveryRuleInput, 'deliveryFee' | 'minimumOrder'> & { deliveryFee: DecimalJson; minimumOrder: DecimalJson }; version: number; createdAt: string; updatedAt: string }
 export type Geography = { id: string; cityId: string | null; name: string; active: boolean; version: number; createdAt: string; updatedAt: string }
 
 export type RestaurantStaff = {

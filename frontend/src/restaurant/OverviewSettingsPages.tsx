@@ -41,8 +41,8 @@ export function RestaurantSettingsPage() {
   })
   return <><PageHeader eyebrow="Owner settings" title="Restaurant profile" description="Changes use the latest server version. Conflicts refresh the authoritative profile." />
     <Panel>{restaurant.isPending ? <p>Loading settings…</p> : restaurant.isError ? <ErrorState onRetry={() => void restaurant.refetch()} /> : <form className="ops-form" onSubmit={handleSubmit((values) => update.mutate(values))} noValidate>
-      <label>Name<input {...register('name')} aria-invalid={Boolean(errors.name)} /></label>{errors.name && <span className="field-error">{errors.name.message}</span>}
-      <label>Description<textarea rows={5} {...register('description')} aria-invalid={Boolean(errors.description)} /></label>{errors.description && <span className="field-error">{errors.description.message}</span>}
+      <label>Name<input {...register('name')} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'restaurant-name-error' : undefined} /></label>{errors.name && <span id="restaurant-name-error" className="field-error">{errors.name.message}</span>}
+      <label>Description<textarea rows={5} {...register('description')} aria-invalid={Boolean(errors.description)} aria-describedby={errors.description ? 'restaurant-description-error' : undefined} /></label>{errors.description && <span id="restaurant-description-error" className="field-error">{errors.description.message}</span>}
       <MutationMessage error={update.error} success={update.isSuccess ? 'Restaurant profile updated.' : undefined} />
       <button className="primary-button" disabled={update.isPending}>{update.isPending ? 'Saving…' : 'Save profile'}</button>
     </form>}</Panel>

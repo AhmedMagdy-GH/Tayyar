@@ -22,8 +22,8 @@ export function RestaurantShell({ children }: { children: ReactNode }) {
         {contexts.length > 1 ? <select id="restaurant-context" value={selected.restaurantId} onChange={(event) => selectRestaurant(event.target.value)}>{contexts.map((item) => <option key={item.restaurantId} value={item.restaurantId}>{item.restaurantName}</option>)}</select> : <strong>{selected.restaurantName}</strong>}
         <span className="role-chip">{selected.role === 'OWNER' ? 'Owner' : 'Staff'} · {selected.restaurantStatus}</span>
       </div>
-      <nav className="ops-nav" aria-label="Restaurant operations">{links.map(([name, to, Icon]) => <NavLink key={to} to={to}><Icon aria-hidden="true" size={19} /><span>{name}</span></NavLink>)}</nav>
-      <NavLink className="customer-return" to="/">← Customer app</NavLink>
+      <nav className="ops-nav" aria-label="Restaurant operations">{links.map(([name, to, Icon]) => <NavLink key={to} to={to} aria-label={name}><Icon aria-hidden="true" size={19} /><span>{name}</span></NavLink>)}</nav>
+      <NavLink className="customer-return" to="/" aria-label="Return to Customer app">← Customer app</NavLink>
     </aside>
     <main className="ops-main">{children}</main>
   </div>

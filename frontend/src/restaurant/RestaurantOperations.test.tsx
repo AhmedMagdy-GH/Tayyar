@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import { App } from '../app/App'
 import { ApiError } from '../api/client'
@@ -18,7 +18,7 @@ const member: RestaurantStaff = { userId: 'u1', fullName: 'Nour Ali', email: 'no
 const order: RestaurantOrderDetails = { order: { id: '12345678-1234-1234-1234-123456789012', status: 'PLACED', restaurant: { id: 'r1', name: 'Tayyar Grill' }, branch: { id: 'b1', name: 'Maadi' }, merchandiseSubtotal: 100, deliveryFee: 15, discountTotal: 0, finalTotal: 115, currency: 'EGP', version: 2, createdAt: '2026-09-12T10:00:00Z' }, items: [{ menuItemId: 'i1', name: 'Kofta', unitPrice: 100, quantity: 1, lineSubtotal: 100 }], deliveryAddress: { label: 'Home', street: 'Street', building: '1', floor: null, apartment: null, landmark: null, instructions: null, city: 'Cairo', region: null, postalCode: null, countryCode: 'EG', deliveryZoneName: 'Maadi', managedCityName: 'Cairo' }, payment: { method: 'CASH', status: 'PENDING' }, history: [] }
 
 function client(user: CurrentUser, available = contexts) { const value = testClient(); value.setQueryData(queryKeys.currentUser, user); value.setQueryData(queryKeys.restaurantContext, available); return value }
-afterEach(() => { window.localStorage.clear(); vi.restoreAllMocks() })
+afterEach(() => { vi.useRealTimers(); window.localStorage.clear(); vi.restoreAllMocks() })
 
 it('denies anonymous and Customer accounts', async () => {
   const anonymous = testClient(); anonymous.setQueryData(queryKeys.currentUser, null)
@@ -93,6 +93,16 @@ it('renders categories, items, and unambiguous branch override values', async ()
   expect(screen.getByText(/Branch override: 110 EGP · unavailable/)).toBeInTheDocument()
 })
 
+it('disables item creation while its authoritative collection version is unavailable', async () => {
+  const value = client(owner, contexts.slice(0, 1))
+  value.setQueryData(queryKeys.menu('r1'), { id: 'm1', restaurantId: 'r1', name: 'Main menu', active: true, currency: 'EGP', version: 1, createdAt: '', updatedAt: '' })
+  value.setQueryData(queryKeys.categories('r1'), { items: [{ id: 'c1', name: 'Mains', description: 'Lunch', active: true, position: 0 }], page: 0, size: 100, total: 1, version: 2 })
+  vi.spyOn(restaurantOperationsApi, 'items').mockImplementation(() => new Promise(() => undefined))
+  renderApp(<App />, value, ['/restaurant/menu'])
+  fireEvent.change(await screen.findByLabelText('Category'), { target: { value: 'c1' } })
+  expect(screen.getByRole('button', { name: 'Add item' })).toBeDisabled()
+})
+
 it('renders a real delivery Zone rule for editing', async () => {
   const value = client(owner, contexts.slice(0, 1))
   value.setQueryData(['geography', 'cities'], { items: [{ id: 'city1', cityId: null, name: 'Cairo', active: true, version: 0, createdAt: '', updatedAt: '' }], page: 0, size: 100, total: 1 })
@@ -103,6 +113,96 @@ it('renders a real delivery Zone rule for editing', async () => {
   expect(screen.getByText(/15 EGP fee · 75 EGP minimum/)).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
   expect(screen.getByRole('heading', { name: 'Edit zone rule' })).toBeInTheDocument()
+})
+
+it('normalizes numeric Branch coordinates to strings and saves them unchanged', async () => {
+  const numericBranch: ManagedBranch = { ...branch, profile: { ...branch.profile, latitude: 30.0444, longitude: 31.2357 } }
+  const update = vi.spyOn(restaurantOperationsApi, 'updateBranch').mockResolvedValue(numericBranch)
+  const value = client(owner, contexts.slice(0, 1)); value.setQueryData(queryKeys.branches('r1'), { items: [numericBranch], page: 0, size: 100, total: 1 })
+  renderApp(<App />, value, ['/restaurant/branches'])
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit profile' }))
+  expect(screen.getByLabelText('Latitude')).toHaveValue('30.0444')
+  expect(screen.getByLabelText('Longitude')).toHaveValue('31.2357')
+  fireEvent.click(screen.getByRole('button', { name: 'Save branch' }))
+  await waitFor(() => expect(update).toHaveBeenCalledWith('r1', 'b1', expect.objectContaining({ latitude: '30.0444', longitude: '31.2357' }), 3))
+})
+
+it('normalizes numeric delivery money to decimal strings and saves it unchanged', async () => {
+  const update = vi.spyOn(restaurantOperationsApi, 'updateDeliveryRule').mockResolvedValue({ id: 'd1', branchId: 'b1', deliveryZoneId: 'z1', currency: 'EGP', rule: { deliveryFee: 15, minimumOrder: 75, etaMinMinutes: 20, etaMaxMinutes: 35, enabled: true }, version: 3, createdAt: '', updatedAt: '' })
+  const value = client(owner, contexts.slice(0, 1))
+  value.setQueryData(['geography', 'cities'], { items: [{ id: 'city1', cityId: null, name: 'Cairo', active: true, version: 0, createdAt: '', updatedAt: '' }], page: 0, size: 100, total: 1 })
+  value.setQueryData(['geography', 'zones', 'city1'], { items: [{ id: 'z1', cityId: 'city1', name: 'Maadi Zone', active: true, version: 0, createdAt: '', updatedAt: '' }], page: 0, size: 100, total: 1 })
+  value.setQueryData(queryKeys.deliveryRules('r1', 'b1'), { items: [{ id: 'd1', branchId: 'b1', deliveryZoneId: 'z1', currency: 'EGP', rule: { deliveryFee: 15, minimumOrder: 75, etaMinMinutes: 20, etaMaxMinutes: 35, enabled: true }, version: 2, createdAt: '', updatedAt: '' }], page: 0, size: 100, total: 1 })
+  renderApp(<App />, value, ['/restaurant/delivery'])
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+  expect(screen.getByLabelText('Delivery fee (EGP)')).toHaveValue('15')
+  expect(screen.getByLabelText('Minimum order (EGP)')).toHaveValue('75')
+  fireEvent.click(screen.getByRole('button', { name: 'Save rule' }))
+  await waitFor(() => expect(update).toHaveBeenCalledWith('r1', 'b1', 'z1', expect.objectContaining({ deliveryFee: '15', minimumOrder: '75' }), 2))
+})
+
+it('refreshes a stale Branch editor to the authoritative version without retrying', async () => {
+  const update = vi.spyOn(restaurantOperationsApi, 'updateBranch').mockRejectedValueOnce(new ApiError('Branch changed', 409)).mockResolvedValueOnce({ ...branch, version: 5 })
+  vi.spyOn(restaurantOperationsApi, 'branches').mockResolvedValue({ items: [{ ...branch, version: 5 }], page: 0, size: 100, total: 1 })
+  const value = client(owner, contexts.slice(0, 1)); value.setQueryData(queryKeys.branches('r1'), { items: [branch], page: 0, size: 100, total: 1 })
+  renderApp(<App />, value, ['/restaurant/branches'])
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit profile' })); fireEvent.click(screen.getByRole('button', { name: 'Save branch' }))
+  await waitFor(() => expect(restaurantOperationsApi.branches).toHaveBeenCalledWith('r1'))
+  expect(update).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Save branch' }))
+  await waitFor(() => expect(update).toHaveBeenLastCalledWith('r1', 'b1', expect.anything(), 5))
+})
+
+it('keeps polling an empty visible queue, shows the first Order, and stops while hidden', async () => {
+  vi.useFakeTimers()
+  const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+  const orders = vi.spyOn(restaurantOperationsApi, 'orders').mockResolvedValue({ items: [order.order], page: 0, size: 20, total: 1 })
+  const value = client(owner, contexts.slice(0, 1)); value.setQueryData(queryKeys.restaurantOrders('r1', null, null, 0), { items: [], page: 0, size: 20, total: 0 })
+  renderApp(<App />, value, ['/restaurant/orders'])
+  expect(screen.getByText('No orders match these filters.')).toBeInTheDocument()
+  await act(async () => { await vi.advanceTimersByTimeAsync(15_001) })
+  expect(screen.getByText(`#${order.order.id.slice(0, 8)}`)).toBeInTheDocument()
+  const visibleCalls = orders.mock.calls.length
+  visibility.mockReturnValue('hidden')
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000) })
+  expect(orders).toHaveBeenCalledTimes(visibleCalls)
+})
+
+it('closes the previous Restaurant editor and never submits its context after a switch', async () => {
+  const r2Branch = { ...branch, id: 'b2', restaurantId: 'r2', profile: { ...branch.profile, name: 'Zamalek' }, version: 8 }
+  const update = vi.spyOn(restaurantOperationsApi, 'updateBranch').mockResolvedValue(r2Branch)
+  const value = client(owner); value.setQueryData(queryKeys.branches('r1'), { items: [branch], page: 0, size: 100, total: 1 }); value.setQueryData(queryKeys.branches('r2'), { items: [r2Branch], page: 0, size: 100, total: 1 })
+  renderApp(<App />, value, ['/restaurant/branches'])
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit profile' })); expect(screen.getByRole('heading', { name: 'Edit Maadi' })).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('Restaurant'), { target: { value: 'r2' } })
+  expect(screen.queryByRole('heading', { name: 'Edit Maadi' })).not.toBeInTheDocument()
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit profile' })); fireEvent.click(screen.getByRole('button', { name: 'Save branch' }))
+  await waitFor(() => expect(update).toHaveBeenCalledWith('r2', 'b2', expect.anything(), 8))
+})
+
+it('closes a delivery editor when its Branch changes', async () => {
+  const twoBranches = [{ ...contexts[0], branches: [...contexts[0].branches, { branchId: 'b2', branchName: 'Zamalek', branchStatus: 'ACTIVE', operationalState: 'OPEN' }] }]
+  const value = client(owner, twoBranches)
+  value.setQueryData(['geography', 'cities'], { items: [{ id: 'city1', cityId: null, name: 'Cairo', active: true, version: 0, createdAt: '', updatedAt: '' }], page: 0, size: 100, total: 1 }); value.setQueryData(['geography', 'zones', 'city1'], { items: [{ id: 'z1', cityId: 'city1', name: 'Maadi Zone', active: true, version: 0, createdAt: '', updatedAt: '' }], page: 0, size: 100, total: 1 }); value.setQueryData(queryKeys.deliveryRules('r1', 'b1'), { items: [{ id: 'd1', branchId: 'b1', deliveryZoneId: 'z1', currency: 'EGP', rule: { deliveryFee: 15, minimumOrder: 75, etaMinMinutes: 20, etaMaxMinutes: 35, enabled: true }, version: 2, createdAt: '', updatedAt: '' }], page: 0, size: 100, total: 1 }); value.setQueryData(queryKeys.deliveryRules('r1', 'b2'), { items: [], page: 0, size: 100, total: 0 })
+  renderApp(<App />, value, ['/restaurant/delivery']); fireEvent.click(await screen.findByRole('button', { name: 'Edit' })); expect(screen.getByRole('heading', { name: 'Edit zone rule' })).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('Branch'), { target: { value: 'b2' } })
+  expect(screen.getByRole('heading', { name: 'Add zone rule' })).toBeInTheDocument()
+})
+
+it('keeps mobile Owner navigation links and the Customer return path accessibly named', async () => {
+  renderApp(<App />, client(owner, contexts.slice(0, 1)), ['/restaurant/overview'])
+  expect(await screen.findByRole('link', { name: 'Overview' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Menu' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Return to Customer app' })).toBeInTheDocument()
+})
+
+it('associates delivery validation feedback with the invalid field', async () => {
+  const value = client(owner, contexts.slice(0, 1)); value.setQueryData(['geography', 'cities'], { items: [], page: 0, size: 100, total: 0 }); value.setQueryData(queryKeys.deliveryRules('r1', 'b1'), { items: [], page: 0, size: 100, total: 0 })
+  renderApp(<App />, value, ['/restaurant/delivery'])
+  fireEvent.change(screen.getByLabelText('Delivery fee (EGP)'), { target: { value: 'invalid' } }); fireEvent.click(screen.getByRole('button', { name: 'Add rule' }))
+  const field = screen.getByLabelText('Delivery fee (EGP)')
+  await waitFor(() => expect(field).toHaveAttribute('aria-describedby', 'delivery-fee-error'))
+  expect(screen.getByText('Enter a non-negative amount with up to 2 decimals.')).toHaveAttribute('id', 'delivery-fee-error')
 })
 
 it('refetches rather than retrying an order transition after a stale 409', async () => {
